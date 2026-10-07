@@ -107,7 +107,8 @@ sql/ schema.sql
 
 ## حالة التصليحات (بعد المرحلة 9)
 ✅ تثبيت supabase-js@2.45.4 (بدون SRI: لا يمكن حسابه من البيئة) · ✅ schema.sql idempotent (DO blocks + on conflict) · ✅ sql/phase9_hardening.sql (تحقق جوال 05xxxxxxxx وأطوال في RLS) · ✅ حذف BASE · ✅ fallback "ر.س" لو riyal-symbol.png ناقص · ✅ SEO meta/OG/favicon · ✅ _headers (CSP+أمان+كاش) · ✅ robots.txt · ✅ sitemap.xml
-⬜ على المالك: وضع اللوجو الأصلي + assets/riyal-symbol.png · تعديل CONFIG في app.js (جوال/إيميل) · استبدال YOUR-DOMAIN في robots.txt وsitemap.xml · تنفيذ schema.sql ثم phase9_hardening.sql · إنشاء الأدمن
+✅ ربط Supabase (مشروع hayala، ref: onktlkgabkjlxnhumoez، eu-west-1): تم تنفيذ schema.sql (شامل المرحلة 10) ثم phase9_hardening.sql، والبيانات التجريبية موجودة، وassets/supabase.js فيه الرابط ومفتاح anon العام (ليس سرًا؛ الحماية بالـ RLS وتم اختبارها كزائر). تنبيه Supabase عن is_admin() مقصود: لا تسحب EXECUTE منها وإلا تنكسر سياسات القراءة.
+⬜ على المالك: وضع اللوجو الأصلي + assets/riyal-symbol.png · تعديل CONFIG في app.js (جوال/إيميل) · استبدال YOUR-DOMAIN في robots.txt وsitemap.xml · إنشاء الأدمن (Authentication > Users ثم `insert into admins(user_id) select id from auth.users where email='...'`)
 ⬜ اختياري مستقبلي: Cloudflare Turnstile + التحقق عبر Supabase Edge Function (التحقق من جهة الفرونت وحده لا يحمي) · إخفاء owner_phone عن العامة · نقل الصور إلى Supabase Storage/R2 مع رفع من الأدمن · SRI · sitemap ديناميكي للعقارات والمقالات
 ## الخطوة التالية
 المراحل 1-10 منتهية؛ التالية المرحلة 11 (راجع الجدول).
