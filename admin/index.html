@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>لوحة التحكم | حيالة القصيم</title>
+<link rel="icon" href="../assets/logo.png">
+<link rel="stylesheet" href="../assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="../assets/supabase.js"></script>
+<script defer src="../assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main"><section class="section"><div class="container">
+  <h1 class="page-title">لوحة التحكم</h1>
+  <div id="login" style="max-width:420px" hidden>
+    <div class="field"><label for="em">البريد الإلكتروني</label><input id="em" type="email" dir="ltr" autocomplete="username"></div>
+    <div class="field"><label for="pw">كلمة المرور</label><input id="pw" type="password" dir="ltr" autocomplete="current-password"><span class="err" id="lerr"></span></div>
+    <button class="btn btn-navy btn-block" id="go">تسجيل الدخول</button>
+  </div>
+  <div id="app" hidden>
+    <div class="adm-bar"><div class="adm-tabs" id="tabs"></div><button class="btn btn-line btn-sm" id="out">تسجيل الخروج</button></div>
+    <div id="list"></div>
+    <div id="fm" hidden></div>
+  </div>
+</div></section></main>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const $ = id => document.getElementById(id), E = H.esc;
+  const ST = { pending: 'قيد المراجعة', approved: 'معتمد', rejected: 'مرفوض' };
+  const dt = v => v ? new Date(v).toLocaleDateString('ar-SA') : '';
+  const yn = v => v ? 'نعم' : 'لا';
+  const TYPES = ['شاليه', 'استراحة', 'منتجع', 'شقة'];
+  let cities = [], cur = 'subscriptions', rows = [];
+  // حقول النموذج: [مفتاح, عنوان, نوع(t نص/n رقم/a نص طويل/l أسطر/c اختيار/s قائمة), إلزامي, خيارات]
+  const ENT = {
+    subscriptions: { t: 'طلبات الاشتراك', sel: '*, packages(name)', status: true, mk: true,
+      cols: [['owner_name', 'المالك'], ['phone', 'الجوال'], ['property_name', 'العقار'], ['city', 'المدينة'], ['packages', 'الباقة', v => v && v.name], ['payment_method', 'الدفع'], ['status', 'الحالة', v => ST[v] || v], ['created_at', 'التاريخ', dt]] },
+    properties: { t: 'العقارات', sel: '*, cities(name)', status: true, star: true, add: true,
+      cols: [['name', 'الاسم'], ['cities', 'المدينة', v => v && v.name], ['price', 'السعر'], ['status', 'الحالة', v => ST[v] || v], ['featured', 'مميز', yn]],
+      form: [['name', 'اسم العقار', 't', 1], ['owner_name', 'اسم المالك', 't'], ['owner_phone', 'جوال المالك', 't'], ['city_id', 'المدينة', 's', 0, 'cities'], ['district', 'الحي', 't'], ['location', 'الموقع / المنطقة', 't'], ['direction', 'الاتجاه', 's', 0, ['شمال', 'جنوب', 'شرق', 'غرب']], ['type', 'النوع', 's', 0, TYPES], ['price_weekday', 'سعر وسط الأسبوع', 'n'], ['price_weekend', 'سعر نهاية الأسبوع', 'n'], ['price_overnight', 'سعر المبيت', 'n'], ['price_holiday', 'سعر الإجازات', 'n'], ['capacity', 'السعة', 'n'], ['rooms', 'الغرف', 'n'], ['status', 'الحالة', 's', 1, ['pending', 'approved', 'rejected']], ['featured', 'عقار مميز', 'c'], ['has_pool', 'يوجد مسبح', 'c'], ['amenities', 'المميزات (كل سطر ميزة)', 'l'], ['images', 'روابط الصور (كل سطر رابط)', 'l'], ['description', 'الوصف', 'a']] },
+    cities: { t: 'المدن', add: true, order: 'sort', asc: true,
+      cols: [['name', 'المدينة'], ['sort', 'الترتيب']],
+      form: [['name', 'اسم المدينة', 't', 1], ['sort', 'الترتيب', 'n'], ['image', 'رابط الصورة', 't']] },
+    packages: { t: 'الباقات', add: true, order: 'sort', asc: true,
+      cols: [['name', 'الباقة'], ['price', 'السعر'], ['period', 'المدة'], ['active', 'فعّالة', yn]],
+      form: [['name', 'اسم الباقة', 't', 1], ['price', 'السعر', 'n', 1], ['period', 'المدة', 't'], ['features', 'المميزات (كل سطر ميزة)', 'l'], ['sort', 'الترتيب', 'n'], ['active', 'فعّالة', 'c']] },
+    posts: { t: 'المقالات', add: true,
+      cols: [['title', 'العنوان'], ['slug', 'الرابط'], ['published', 'منشور', yn], ['created_at', 'التاريخ', dt]],
+      form: [['title', 'العنوان', 't', 1], ['slug', 'الرابط (إنجليزي بدون مسافات)', 't', 1], ['excerpt', 'مقتطف', 't'], ['cover', 'رابط الغلاف', 't'], ['body', 'النص (سطر فاضي بين الفقرات)', 'a'], ['published', 'منشور', 'c']] },
+    suggestions: { t: 'الاقتراحات', cols: [['name', 'الاسم'], ['phone', 'الجوال'], ['message', 'الاقتراح'], ['created_at', 'التاريخ', dt]] }
+  };
+  const msg = (el, t) => { el.innerHTML = `<p class="empty">${t}</p>`; };
+
+  async function enter() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { $('app').hidden = true; $('login').hidden = false; return; }
+    const { data: a } = await sb.from('admins').select('user_id').maybeSingle();
+    $('login').hidden = !!a;
+    if (!a) { $('lerr').textContent = 'هذا الحساب ليس أدمن. أضفه لجدول admins ثم أعد الدخول.'; await sb.auth.signOut(); $('login').hidden = false; return; }
+    $('app').hidden = false;
+    const c = await sb.from('cities').select('id,name').order('sort'); cities = c.data || [];
+    $('tabs').innerHTML = Object.keys(ENT).map(k => `<button data-k="${k}">${ENT[k].t}</button>`).join('');
+    show(cur);
+  }
+  function show(k) {
+    cur = k; $('fm').hidden = true; $('list').hidden = false;
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+    load();
+  }
+  async function load() {
+    const e = ENT[cur]; msg($('list'), 'جاري التحميل...');
+    const { data, error } = await sb.from(cur).select(e.sel || '*').order(e.order || 'created_at', { ascending: !!e.asc });
+    if (error) { console.error(error); return msg($('list'), 'تعذّر التحميل'); }
+    rows = data || [];
+    const btn = (a, i, t, c) => `<button class="btn ${c || 'btn-line'} btn-sm" data-a="${a}" data-i="${i}">${t}</button>`;
+    const th = e.cols.map(c => `<th>${c[1]}</th>`).join('') + '<th></th>';
+    const tr = rows.map((r, i) => `<tr>${e.cols.map(c => `<td>${E(c[2] ? c[2](r[c[0]], r) : r[c[0]])}</td>`).join('')}<td class="acts">
+      ${e.status && r.status !== 'approved' ? btn('ok', i, 'اعتماد', 'btn-navy') : ''}${e.status && r.status !== 'rejected' ? btn('no', i, 'رفض') : ''}
+      ${e.star ? btn('star', i, r.featured ? 'إلغاء التمييز' : 'تمييز') : ''}${e.mk ? btn('mk', i, 'إنشاء عقار') : ''}
+      ${e.form ? btn('edit', i, 'تعديل') : ''}${btn('del', i, 'حذف')}</td></tr>`).join('');
+    $('list').innerHTML = `${e.add ? `<p><button class="btn btn-yellow btn-sm" data-a="new">إضافة جديد</button></p>` : ''}
+      <p class="result-count">${rows.length} سجل</p>
+      ${rows.length ? `<div class="tbl-wrap"><table class="adm"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>` : '<p class="empty">لا توجد بيانات</p>'}`;
+  }
+  async function upd(id, patch) {
+    const { error } = await sb.from(cur).update(patch).eq('id', id);
+    if (error) { console.error(error); return H.toast('تعذّر التنفيذ'); }
+    H.toast('تم'); load();
+  }
+  function form(row, fields, table) {
+    const v = row || {};
+    $('fm').innerHTML = `<div class="form-grid">${fields.map(([k, l, t, req, o]) => {
+      let x = v[k];
+      if (t === 'l') x = Array.isArray(x) ? x.join('\n') : '';
+      const lab = `<label for="f-${k}">${l}${req ? ' *' : ''}</label>`;
+      let inp;
+      if (t === 'a') inp = `<textarea id="f-${k}" rows="6">${E(x)}</textarea>`;
+      else if (t === 'l') inp = `<textarea id="f-${k}" rows="4" dir="ltr">${E(x)}</textarea>`;
+      else if (t === 'c') return `<div class="field"><label><input type="checkbox" id="f-${k}" ${x ? 'checked' : ''}> ${l}</label></div>`;
+      else if (t === 's') { const opts = o === 'cities' ? cities.map(c => [c.id, c.name]) : o.map(s => [s, ST[s] || s]); inp = `<select id="f-${k}"><option value="">-</option>${opts.map(([a, b]) => `<option value="${E(a)}" ${a === x ? 'selected' : ''}>${E(b)}</option>`).join('')}</select>`; }
+      else inp = `<input id="f-${k}" type="${t === 'n' ? 'number' : 'text'}" value="${E(x)}" ${t === 'n' ? 'step="any"' : ''}>`;
+      return `<div class="field${t === 'a' || t === 'l' ? ' full' : ''}">${lab}${inp}</div>`;
+    }).join('')}</div>
+    <div class="nav-btns"><button class="btn btn-line" id="fc">إلغاء</button><button class="btn btn-yellow" id="fs" style="margin-inline-start:auto">حفظ</button></div>`;
+    $('list').hidden = true; $('fm').hidden = false; window.scrollTo({ top: 0 });
+    $('fc').onclick = () => show(cur);
+    $('fs').onclick = async () => {
+      const o = {};
+      for (const [k, l, t, req] of fields) {
+        const el = $('f-' + k), s = t === 'c' ? el.checked : el.value.trim();
+        if (req && !s) return H.toast(`${l} مطلوب`);
+        o[k] = t === 'c' ? s : t === 'n' ? (s === '' ? null : Number(s)) : t === 'l' ? s.split('\n').map(z => z.trim()).filter(Boolean) : (s || null);
+      }
+      if (table === 'properties') { // price = أقل سعر موجب (يظهر في البطاقات والفلترة)
+        const t = ['price_weekday', 'price_weekend', 'price_overnight', 'price_holiday'].map(k => o[k]).filter(x => x > 0);
+        if (!t.length) return H.toast('أدخل سعرًا واحدًا على الأقل');
+        o.price = Math.min(...t);
+      }
+      $('fs').disabled = true;
+      const q = row && row.id ? sb.from(table).update(o).eq('id', row.id) : sb.from(table).insert(o);
+      const { error } = await q;
+      if (error) { console.error(error); $('fs').disabled = false; return H.toast('تعذّر الحفظ: ' + (error.message || '')); }
+      H.toast('تم الحفظ'); show(cur);
+    };
+  }
+
+  $('go').onclick = async () => {
+    $('lerr').textContent = '';
+    const { error } = await sb.auth.signInWithPassword({ email: $('em').value.trim(), password: $('pw').value });
+    if (error) { $('lerr').textContent = 'بيانات الدخول غير صحيحة'; return; }
+    $('pw').value = ''; enter();
+  };
+  $('out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.k); });
+  $('list').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-a]'); if (!b) return;
+    const r = rows[b.dataset.i], a = b.dataset.a, E2 = ENT[cur];
+    if (a === 'new') return form(null, E2.form, cur);
+    if (a === 'edit') return form(r, E2.form, cur);
+    if (a === 'ok' || a === 'no') return upd(r.id, { status: a === 'ok' ? 'approved' : 'rejected' });
+    if (a === 'star') return upd(r.id, { featured: !r.featured });
+    if (a === 'del') { if (confirm('تأكيد الحذف نهائيًا؟')) { const { error } = await sb.from(cur).delete().eq('id', r.id); if (error) H.toast('تعذّر الحذف'); else { H.toast('تم الحذف'); load(); } } return; }
+    if (a === 'mk') { // إنشاء عقار من طلب اشتراك
+      const d = r.details || {}, c = cities.find(x => x.name === r.city);
+      cur = 'properties'; document.querySelectorAll('#tabs button').forEach(t => t.classList.toggle('on', t.dataset.k === cur));
+      form({ owner_name: r.owner_name, owner_phone: r.phone, name: r.property_name, city_id: c && c.id, district: d.district, type: d.type, price_weekday: d.price, price_weekend: d.price, capacity: d.capacity, rooms: d.rooms, description: d.notes, status: 'pending' }, ENT.properties.form, 'properties');
+    }
+  });
+  try { await enter(); } catch (e) { console.error(e); $('login').hidden = false; }
+  H.hideLoader();
+});
+</script>
+</body>
+</html>
