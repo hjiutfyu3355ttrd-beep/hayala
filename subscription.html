@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>اشترك معنا | حيالة القصيم</title>
+<meta name="description" content="سجّل عقارك في حيالة القصيم واختر الباقة المناسبة وابدأ باستقبال الحجوزات.">
+<meta name="theme-color" content="#14487F">
+<link rel="icon" href="assets/logo.png">
+<meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
+<meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="اشترك معنا | حيالة القصيم">
+<meta property="og:description" content="سجّل عقارك في حيالة القصيم واختر الباقة المناسبة وابدأ باستقبال الحجوزات."><meta property="og:image" content="assets/logo.png">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main"><section class="section"><div class="container" style="max-width:860px">
+  <h1 class="page-title">اشترك معنا</h1>
+  <ol class="steps" id="steps" style="padding:0"><li>الباقة</li><li>بيانات العقار</li><li>طريقة الدفع</li></ol>
+  <div id="s1"><div class="pkgs" id="pkgs"></div><p class="field"><span class="err" id="e-pkg"></span></p></div>
+  <div id="s2" hidden><div class="form-grid">
+    <div class="field"><label for="owner">اسم المالك *</label><input id="owner" maxlength="120" autocomplete="name"><span class="err"></span></div>
+    <div class="field"><label for="phone">رقم الجوال *</label><input id="phone" type="tel" inputmode="tel" dir="ltr" placeholder="05XXXXXXXX" autocomplete="tel"><span class="err"></span></div>
+    <div class="field"><label for="email">البريد الإلكتروني</label><input id="email" type="email" dir="ltr" autocomplete="email"><span class="err"></span></div>
+    <div class="field"><label for="pname">اسم العقار *</label><input id="pname" maxlength="120"><span class="err"></span></div>
+    <div class="field"><label for="city">المدينة *</label><select id="city"><option value="">اختر المدينة</option></select><span class="err"></span></div>
+    <div class="field"><label for="district">الحي</label><input id="district" maxlength="80"></div>
+    <div class="field"><label for="type">النوع *</label><select id="type"><option value="">اختر النوع</option><option>شاليه</option><option>استراحة</option><option>منتجع</option><option>شقة</option></select><span class="err"></span></div>
+    <div class="field"><label for="price">السعر لليلة (ريال) *</label><input id="price" type="number" min="1" inputmode="numeric"><span class="err"></span></div>
+    <div class="field"><label for="capacity">السعة (أشخاص)</label><input id="capacity" type="number" min="1" inputmode="numeric"></div>
+    <div class="field"><label for="rooms">عدد الغرف</label><input id="rooms" type="number" min="0" inputmode="numeric"></div>
+    <div class="field full"><label for="notes">ملاحظات</label><textarea id="notes" rows="3" maxlength="1000"></textarea></div>
+    <input class="hp" id="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+  </div></div>
+  <div id="s3" hidden>
+    <div class="pay" id="pay">
+      <label><input type="radio" name="pm" value="تحويل بنكي"> تحويل بنكي</label>
+      <label><input type="radio" name="pm" value="مدى"> مدى</label>
+      <label><input type="radio" name="pm" value="STC Pay"> STC Pay</label>
+    </div>
+    <p class="err" id="e-pay"></p>
+    <div class="summary" id="summary"></div>
+  </div>
+  <div id="done" class="success" hidden><h2>تم استلام طلبك</h2><p>سنراجع بياناتك ونتواصل معك قريبًا على رقم الجوال المسجّل.</p><p style="margin-top:16px"><a class="btn btn-navy" href="index.html">الرئيسية</a></p></div>
+  <div class="nav-btns" id="nav"><button class="btn btn-line" id="prev" hidden>السابق</button><button class="btn btn-yellow" id="next" style="margin-inline-start:auto">التالي</button></div>
+</div></section></main>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const $ = id => document.getElementById(id);
+  let step = 1, pkgs = [], pkgId = null;
+  const val = id => $(id).value.trim();
+  const setErr = (id, m) => { const e = $(id).parentElement.querySelector('.err'); if (e) e.textContent = m || ''; return !m; };
+  const phoneOk = v => /^(05\d{8}|9665\d{8}|\+9665\d{8})$/.test(v.replace(/[\s-]/g, ''));
+  const normPhone = v => v.replace(/[\s-]/g, '').replace(/^\+/, '').replace(/^966/, '0');
+
+  try {
+    const [p, c] = await Promise.all([sb.from('packages').select('*').eq('active', true).order('sort'), sb.from('cities').select('name').order('sort')]);
+    if (p.error || c.error) throw (p.error || c.error);
+    pkgs = p.data;
+    $('city').insertAdjacentHTML('beforeend', c.data.map(x => `<option>${H.esc(x.name)}</option>`).join(''));
+    $('pkgs').innerHTML = pkgs.length ? pkgs.map(k => `<button type="button" class="pkg" data-id="${H.esc(k.id)}"><h3>${H.esc(k.name)}</h3>${H.price(k.price)}<small>${H.esc(k.period || '')}</small>
+      <ul>${(Array.isArray(k.features) ? k.features : []).map(f => `<li>${H.esc(f)}</li>`).join('')}</ul></button>`).join('') : '<p class="empty">لا توجد باقات متاحة حاليًا</p>';
+  } catch (e) { console.error(e); $('pkgs').innerHTML = '<p class="empty">تعذّر تحميل الباقات، حاول مرة أخرى لاحقًا</p>'; }
+  $('pkgs').addEventListener('click', e => {
+    const b = e.target.closest('.pkg'); if (!b) return;
+    pkgId = b.dataset.id; $('e-pkg').textContent = '';
+    $('pkgs').querySelectorAll('.pkg').forEach(x => x.classList.toggle('sel', x === b));
+  });
+
+  function show(n) {
+    step = n;
+    ['s1', 's2', 's3'].forEach((id, i) => $(id).hidden = i + 1 !== n);
+    [...$('steps').children].forEach((li, i) => { li.className = i + 1 === n ? 'on' : i + 1 < n ? 'done' : ''; });
+    $('prev').hidden = n === 1;
+    $('next').textContent = n === 3 ? 'إرسال الطلب' : 'التالي';
+    if (n === 3) {
+      const k = pkgs.find(x => x.id === pkgId);
+      $('summary').innerHTML = [['الباقة', k && k.name], ['العقار', val('pname')], ['المدينة', val('city')], ['المالك', val('owner')], ['الجوال', val('phone')]]
+        .map(r => `<p><span>${r[0]}</span><strong>${H.esc(r[1])}</strong></p>`).join('');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function valid(n) {
+    if (n === 1) { $('e-pkg').textContent = pkgId ? '' : 'اختر باقة للمتابعة'; return !!pkgId; }
+    if (n === 2) {
+      const r = [
+        setErr('owner', val('owner').length < 3 ? 'اكتب الاسم الكامل' : ''),
+        setErr('phone', phoneOk(val('phone')) ? '' : 'اكتب رقم جوال سعودي صحيح مثل 0501234567'),
+        setErr('email', val('email') && !/^\S+@\S+\.\S+$/.test(val('email')) ? 'بريد إلكتروني غير صحيح' : ''),
+        setErr('pname', val('pname').length < 2 ? 'اكتب اسم العقار' : ''),
+        setErr('city', val('city') ? '' : 'اختر المدينة'),
+        setErr('type', val('type') ? '' : 'اختر النوع'),
+        setErr('price', Number(val('price')) > 0 ? '' : 'اكتب السعر')
+      ];
+      return r.every(Boolean);
+    }
+    const ok = !!document.querySelector('input[name=pm]:checked');
+    $('e-pay').textContent = ok ? '' : 'اختر طريقة الدفع';
+    return ok;
+  }
+
+  $('prev').addEventListener('click', () => show(step - 1));
+  $('next').addEventListener('click', async () => {
+    if (!valid(step)) return;
+    if (step < 3) return show(step + 1);
+    if (val('hp')) return; // honeypot
+    $('next').disabled = true; $('next').textContent = 'جاري الإرسال...';
+    const { error } = await sb.from('subscriptions').insert({
+      package_id: pkgId, owner_name: val('owner'), phone: normPhone(val('phone')), email: val('email') || null,
+      property_name: val('pname'), city: val('city'),
+      details: { district: val('district'), type: val('type'), price: Number(val('price')), capacity: Number(val('capacity')) || null, rooms: Number(val('rooms')) || null, notes: val('notes') },
+      payment_method: document.querySelector('input[name=pm]:checked').value, status: 'pending'
+    });
+    if (error) { console.error(error); H.toast('تعذّر إرسال الطلب، حاول مرة أخرى'); $('next').disabled = false; $('next').textContent = 'إرسال الطلب'; return; }
+    ['s1', 's2', 's3', 'nav', 'steps'].forEach(id => $(id).hidden = true);
+    $('done').hidden = false; window.scrollTo({ top: 0 });
+  });
+  show(1);
+  H.hideLoader();
+});
+</script>
+</body>
+</html>

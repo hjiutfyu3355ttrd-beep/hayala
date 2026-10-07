@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مقال | حيالة القصيم</title>
+<meta name="description" content="مقال من مدونة حيالة القصيم.">
+<meta name="theme-color" content="#14487F">
+<link rel="icon" href="assets/logo.png">
+<meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
+<meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="مقال | حيالة القصيم">
+<meta property="og:description" content="مقال من مدونة حيالة القصيم."><meta property="og:image" content="assets/logo.png">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main"><section class="section"><div class="container" style="max-width:760px">
+  <a class="back" href="blog.html">رجوع للمدونة</a>
+  <article class="article" id="view"></article>
+</div></section></main>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const view = document.getElementById('view'), msg = t => view.innerHTML = `<p class="empty">${t}</p>`;
+  try {
+    const slug = H.qs('slug');
+    if (!slug) return msg('المقال غير موجود');
+    const { data: p, error } = await sb.from('posts').select('*').eq('slug', slug).eq('published', true).maybeSingle();
+    if (error) throw error;
+    if (!p) return msg('المقال غير موجود أو غير منشور');
+    document.title = `${p.title} | حيالة القصيم`;
+    // النص يُعرض كنص عادي (بدون HTML): فقرة لكل سطر فاضي
+    const paras = String(p.body || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean).map(s => `<p>${H.esc(s).replace(/\n/g, '<br>')}</p>`).join('');
+    view.innerHTML = `${p.cover ? `<img class="article-cover" src="${H.esc(p.cover)}" alt="${H.esc(p.title)}">` : ''}
+      <h1>${H.esc(p.title)}</h1><time>${new Date(p.created_at).toLocaleDateString('ar-SA')}</time>${paras}
+      <div class="article-cta"><a class="btn btn-yellow" href="properties.html">تصفّح العقارات</a></div>`;
+  } catch (e) { console.error(e); msg('تعذّر تحميل المقال، حاول مرة أخرى لاحقًا'); }
+  H.hideLoader();
+});
+</script>
+</body>
+</html>

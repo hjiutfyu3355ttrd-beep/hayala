@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تفاصيل العقار | حيالة القصيم</title>
+<meta name="description" content="تفاصيل الشاليه أو الاستراحة: الصور والمميزات والسعر وتواصل مباشر مع المالك.">
+<meta name="theme-color" content="#14487F">
+<link rel="icon" href="assets/logo.png">
+<meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
+<meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="تفاصيل العقار | حيالة القصيم">
+<meta property="og:description" content="تفاصيل الشاليه أو الاستراحة: الصور والمميزات والسعر وتواصل مباشر مع المالك."><meta property="og:image" content="assets/logo.png">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main"><section class="section"><div class="container">
+  <a class="back" href="properties.html">رجوع للعقارات</a>
+  <div id="view"></div>
+</div></section></main>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const view = document.getElementById('view'), msg = t => view.innerHTML = `<p class="empty">${t}</p>`;
+  try {
+    const id = H.qs('id');
+    if (!id) return msg('العقار غير موجود');
+    const { data: p, error } = await sb.from('properties').select('*, cities(name)').eq('id', id).maybeSingle();
+    if (error && error.code !== '22P02') throw error;
+    if (!p) return msg('العقار غير موجود أو غير متاح حاليًا');
+    document.title = `${p.name} | حيالة القصيم`;
+    const imgs = (p.images && p.images.length) ? p.images : [''];
+    const meta = [['المدينة', p.cities && p.cities.name], ['الحي', p.district], ['النوع', p.type], ['الاتجاه', p.direction], ['الموقع', p.location], ['المسبح', p.has_pool ? 'يوجد' : null], ['السعة', p.capacity && p.capacity + ' أشخاص'], ['الغرف', p.rooms]]
+      .filter(m => m[1]).map(m => `<div><small>${m[0]}</small><strong>${H.esc(m[1])}</strong></div>`).join('');
+    const tiers = [['وسط الأسبوع', p.price_weekday], ['نهاية الأسبوع', p.price_weekend], ['مبيت', p.price_overnight], ['الإجازات', p.price_holiday]]
+      .filter(t => Number(t[1]) > 0).map(t => `<div><span>${t[0]}</span>${H.price(t[1])}</div>`).join('');
+    const am = Array.isArray(p.amenities) ? p.amenities : [];
+    const wa = p.owner_phone ? H.waLink(p.owner_phone, `مرحبًا، أرغب بحجز "${p.name}" عبر حيالة القصيم`) : '';
+    view.innerHTML = `<div class="detail">
+      <div>
+        <div class="gallery-main"><img id="main-img" src="${H.esc(imgs[0])}" alt="${H.esc(p.name)}"></div>
+        ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((s, i) => `<button type="button" class="${i ? '' : 'on'}" data-src="${H.esc(s)}" aria-label="صورة ${i + 1}"><img loading="lazy" src="${H.esc(s)}" alt=""></button>`).join('')}</div>` : ''}
+        ${p.description ? `<div class="block"><h2>الوصف</h2><p class="desc">${H.esc(p.description)}</p></div>` : ''}
+        ${am.length ? `<div class="block"><h2>المميزات</h2><div class="chips">${am.map(a => `<span class="chip">${H.esc(a)}</span>`).join('')}</div></div>` : ''}
+      </div>
+      <aside class="panel">
+        <h1>${H.esc(p.name)}</h1>
+        ${tiers ? `<div class="tiers">${tiers}</div>` : `${H.price(p.price)}<div class="price-note">السعر لليلة الواحدة</div>`}
+        <div class="meta">${meta}</div>
+        <div class="actions-col">
+          ${wa ? `<a class="btn btn-yellow btn-block" href="${wa}" target="_blank" rel="noopener">احجز عبر واتساب</a>` : ''}
+          ${p.owner_phone ? `<a class="btn btn-navy btn-block" href="tel:${H.esc(p.owner_phone)}">اتصل بالمالك</a>` : ''}
+        </div>
+      </aside></div>`;
+    view.querySelectorAll('.thumbs button').forEach(b => b.addEventListener('click', () => {
+      document.getElementById('main-img').src = b.dataset.src;
+      view.querySelectorAll('.thumbs button').forEach(x => x.classList.toggle('on', x === b));
+    }));
+  } catch (e) { console.error(e); msg('تعذّر تحميل العقار، حاول مرة أخرى لاحقًا'); }
+  H.hideLoader();
+});
+</script>
+</body>
+</html>

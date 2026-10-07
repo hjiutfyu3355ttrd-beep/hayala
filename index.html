@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>حيالة القصيم | شاليهات واستراحات في القصيم</title>
+<meta name="description" content="منصة حجز شاليهات واستراحات ومنتجعات في القصيم: بريدة، عنيزة، البكيرية وغيرها. تصفّح العروض واحجز عبر واتساب.">
+<meta name="theme-color" content="#14487F">
+<link rel="icon" href="assets/logo.png">
+<meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
+<meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="حيالة القصيم | شاليهات واستراحات في القصيم">
+<meta property="og:description" content="منصة حجز شاليهات واستراحات ومنتجعات في القصيم: بريدة، عنيزة، البكيرية وغيرها. تصفّح العروض واحجز عبر واتساب."><meta property="og:image" content="assets/logo.png">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main">
+  <section class="section"><div class="container">
+    <div class="owner-banner" style="background-image:url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1000&h=500&fit=crop&q=80')">
+      <div class="in">
+        <h2>لديك عقار؟ سجّل عقارك</h2>
+        <p>سجّل عقارك في حيالة القصيم وابدأ باستقبال الحجوزات بكل سهولة</p>
+        <a class="btn btn-yellow" href="subscription.html">اشترك الآن</a>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="section"><div class="container">
+    <div class="section-head"><h2>المدن</h2></div>
+    <div class="cities" id="cities"></div>
+  </div></section>
+
+  <section class="section"><div class="container">
+    <div class="section-head"><h2>العروض المميزة</h2><a class="link-more" href="properties.html?featured=1">عرض الكل</a></div>
+    <div class="grid" id="featured"></div>
+  </div></section>
+
+  <section class="section"><div class="container">
+    <div class="section-head"><h2>أحدث العقارات</h2><a class="link-more" href="properties.html">عرض الكل</a></div>
+    <div class="grid" id="latest"></div>
+  </div></section>
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const $ = id => document.getElementById(id);
+  const fill = (id, rows, render, msg) => { $(id).innerHTML = rows && rows.length ? rows.map(render).join('') : `<p class="empty" style="grid-column:1/-1">${msg}</p>`; };
+  try {
+    const [c, f, l] = await Promise.all([
+      sb.from('cities_with_count').select('*').order('sort'),
+      sb.from('properties').select('*').eq('featured', true).order('created_at', { ascending: false }).limit(8),
+      sb.from('properties').select('*').order('created_at', { ascending: false }).limit(12)
+    ]);
+    if (c.error || f.error || l.error) throw (c.error || f.error || l.error);
+    fill('cities', c.data, x => `<a class="city-card" href="properties.html?city=${encodeURIComponent(x.name)}"><strong>${H.esc(x.name)}</strong><span>${x.properties_count} عقار</span></a>`, 'لا توجد مدن حاليًا');
+    fill('featured', f.data, H.card, 'لا توجد عروض مميزة حاليًا');
+    fill('latest', l.data, H.card, 'لا توجد عقارات حاليًا');
+  } catch (e) {
+    console.error(e);
+    ['cities', 'featured', 'latest'].forEach(id => $(id).innerHTML = '<p class="empty" style="grid-column:1/-1">تعذّر تحميل البيانات، حاول مرة أخرى لاحقًا</p>');
+  }
+  H.hideLoader();
+});
+</script>
+</body>
+</html>

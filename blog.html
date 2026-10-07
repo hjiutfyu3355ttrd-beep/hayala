@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>المدونة | حيالة القصيم</title>
+<meta name="description" content="مقالات ونصائح حول الشاليهات والاستراحات والسياحة في القصيم">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main"><section class="section"><div class="container">
+  <h1 class="page-title">المدونة</h1>
+  <div class="grid" id="posts"></div>
+</div></section></main>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const box = document.getElementById('posts');
+  try {
+    const { data, error } = await sb.from('posts').select('title,slug,excerpt,cover,created_at').eq('published', true).order('created_at', { ascending: false });
+    if (error) throw error;
+    box.innerHTML = data.length ? data.map(p => `<a class="card" href="post.html?slug=${encodeURIComponent(p.slug)}">
+      <div class="card-img">${p.cover ? `<img loading="lazy" src="${H.esc(p.cover)}" alt="${H.esc(p.title)}">` : '<div class="cover-ph"></div>'}</div>
+      <div class="card-body"><h3>${H.esc(p.title)}</h3><div class="card-district">${H.esc(p.excerpt || '')}</div><small class="post-date">${new Date(p.created_at).toLocaleDateString('ar-SA')}</small></div></a>`).join('')
+      : '<p class="empty" style="grid-column:1/-1">لا توجد مقالات حاليًا</p>';
+  } catch (e) { console.error(e); box.innerHTML = '<p class="empty" style="grid-column:1/-1">تعذّر تحميل المقالات، حاول مرة أخرى لاحقًا</p>'; }
+  H.hideLoader();
+});
+</script>
+</body>
+</html>

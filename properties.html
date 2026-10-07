@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>العقارات | حيالة القصيم</title>
+<meta name="description" content="تصفّح شاليهات واستراحات القصيم وفلترها حسب المدينة والسعر والنوع.">
+<meta name="theme-color" content="#14487F">
+<link rel="icon" href="assets/logo.png">
+<meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
+<meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="العقارات | حيالة القصيم">
+<meta property="og:description" content="تصفّح شاليهات واستراحات القصيم وفلترها حسب المدينة والسعر والنوع."><meta property="og:image" content="assets/logo.png">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main"><section class="section"><div class="container">
+  <h1 class="page-title">العقارات</h1>
+  <form class="filters" id="filters">
+    <div class="field"><label for="f-city">المدينة</label><select id="f-city"><option value="">كل المدن</option></select></div>
+    <div class="field"><label for="f-type">النوع</label><select id="f-type"><option value="">كل الأنواع</option><option>شاليه</option><option>استراحة</option><option>منتجع</option><option>شقة</option></select></div>
+    <div class="field"><label for="f-min">السعر من</label><input id="f-min" type="number" min="0" inputmode="numeric" placeholder="0"></div>
+    <div class="field"><label for="f-max">السعر إلى</label><input id="f-max" type="number" min="0" inputmode="numeric" placeholder="بدون حد"></div>
+    <div class="field"><label for="f-sort">الترتيب</label><select id="f-sort"><option value="new">الأحدث</option><option value="asc">السعر: الأقل أولًا</option><option value="desc">السعر: الأعلى أولًا</option></select></div>
+    <label class="chk wide"><input type="checkbox" id="f-feat"> العروض المميزة فقط</label>
+    <label class="chk wide"><input type="checkbox" id="f-pool"> بمسبح فقط</label>
+    <div class="actions"><button class="btn btn-navy" type="submit">بحث</button><button class="btn btn-line" type="button" id="reset">مسح</button></div>
+  </form>
+  <p class="result-count" id="count"></p>
+  <div class="grid" id="list"></div>
+  <div style="text-align:center;margin-top:20px"><button class="btn btn-navy" id="more" hidden>عرض المزيد</button></div>
+</div></section></main>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const $ = id => document.getElementById(id), PAGE = 24;
+  let cities = [], page = 0;
+  const f = { city: $('f-city'), type: $('f-type'), min: $('f-min'), max: $('f-max'), sort: $('f-sort'), feat: $('f-feat'), pool: $('f-pool') };
+
+  async function run(reset) {
+    if (reset) { page = 0; $('list').innerHTML = ''; }
+    const city = cities.find(c => c.name === f.city.value);
+    const sync = new URLSearchParams();
+    if (f.city.value) sync.set('city', f.city.value);
+    if (f.type.value) sync.set('type', f.type.value);
+    if (f.min.value) sync.set('min', f.min.value);
+    if (f.max.value) sync.set('max', f.max.value);
+    if (f.sort.value !== 'new') sync.set('sort', f.sort.value);
+    if (f.feat.checked) sync.set('featured', '1');
+    if (f.pool.checked) sync.set('pool', '1');
+    history.replaceState(null, '', location.pathname + (sync.toString() ? '?' + sync : ''));
+
+    let q = sb.from('properties').select('*', { count: 'exact' });
+    if (city) q = q.eq('city_id', city.id);
+    if (f.type.value) q = q.eq('type', f.type.value);
+    if (f.min.value) q = q.gte('price', f.min.value);
+    if (f.max.value) q = q.lte('price', f.max.value);
+    if (f.feat.checked) q = q.eq('featured', true);
+    if (f.pool.checked) q = q.eq('has_pool', true);
+    q = f.sort.value === 'new' ? q.order('created_at', { ascending: false }) : q.order('price', { ascending: f.sort.value === 'asc' });
+    const { data, count, error } = await q.range(page * PAGE, page * PAGE + PAGE - 1);
+    if (error) { console.error(error); $('list').innerHTML = '<p class="empty" style="grid-column:1/-1">تعذّر تحميل العقارات، حاول مرة أخرى لاحقًا</p>'; $('more').hidden = true; return; }
+    $('list').insertAdjacentHTML('beforeend', data.map(H.card).join(''));
+    if (!count) $('list').innerHTML = '<p class="empty" style="grid-column:1/-1">لا توجد عقارات تطابق بحثك، جرّب تغيير الفلاتر</p>';
+    $('count').textContent = count ? `${count} عقار` : '';
+    $('more').hidden = (page + 1) * PAGE >= (count || 0);
+  }
+
+  try {
+    const r = await sb.from('cities').select('id,name').order('sort');
+    if (r.error) throw r.error;
+    cities = r.data;
+    f.city.insertAdjacentHTML('beforeend', cities.map(c => `<option>${H.esc(c.name)}</option>`).join(''));
+    f.city.value = H.qs('city') || ''; f.type.value = H.qs('type') || '';
+    f.min.value = H.qs('min') || ''; f.max.value = H.qs('max') || '';
+    f.sort.value = H.qs('sort') || 'new'; f.feat.checked = H.qs('featured') === '1'; f.pool.checked = H.qs('pool') === '1';
+    if (f.city.value !== (H.qs('city') || '')) f.city.value = '';
+    await run(true);
+  } catch (e) {
+    console.error(e);
+    $('list').innerHTML = '<p class="empty" style="grid-column:1/-1">تعذّر تحميل البيانات، حاول مرة أخرى لاحقًا</p>';
+  }
+  $('filters').addEventListener('submit', e => { e.preventDefault(); run(true); });
+  $('reset').addEventListener('click', () => { $('filters').reset(); run(true); });
+  $('more').addEventListener('click', () => { page++; run(false); });
+  H.hideLoader();
+});
+</script>
+</body>
+</html>

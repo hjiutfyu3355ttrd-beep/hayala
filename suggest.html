@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>اقترح لنا | حيالة القصيم</title>
+<meta name="description" content="شاركنا اقتراحك لتحسين حيالة القصيم.">
+<meta name="theme-color" content="#14487F">
+<link rel="icon" href="assets/logo.png">
+<meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
+<meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="اقترح لنا | حيالة القصيم">
+<meta property="og:description" content="شاركنا اقتراحك لتحسين حيالة القصيم."><meta property="og:image" content="assets/logo.png">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main"><section class="section"><div class="container" style="max-width:720px">
+  <h1 class="page-title">اقترح لنا</h1>
+  <p class="desc" style="margin-bottom:20px">عندك فكرة لتحسين حيالة القصيم أو ملاحظة على الموقع؟ اكتبها لنا وسنراجعها.</p>
+  <div id="form-wrap">
+    <div class="form-grid">
+      <div class="field"><label for="name">الاسم</label><input id="name" maxlength="120" autocomplete="name"></div>
+      <div class="field"><label for="phone">رقم الجوال</label><input id="phone" type="tel" inputmode="tel" dir="ltr" placeholder="05XXXXXXXX" autocomplete="tel"><span class="err"></span></div>
+      <div class="field full"><label for="message">اقتراحك *</label><textarea id="message" rows="5" maxlength="2000"></textarea><span class="err"></span></div>
+      <input class="hp" id="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    </div>
+    <div class="nav-btns"><button class="btn btn-yellow" id="send" style="margin-inline-start:auto">إرسال الاقتراح</button></div>
+  </div>
+  <div id="done" class="success" hidden><h2>وصلنا اقتراحك</h2><p>شكرًا لمساهمتك في تحسين حيالة القصيم.</p><p style="margin-top:16px"><a class="btn btn-navy" href="index.html">العودة للرئيسية</a></p></div>
+</div></section></main>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const $ = id => document.getElementById(id);
+  const setErr = (id, m) => { const e = $(id).parentElement.querySelector('.err'); if (e) e.textContent = m || ''; return !m; };
+  const phoneOk = v => /^(05\d{8}|9665\d{8}|\+9665\d{8})$/.test(v.replace(/[\s-]/g, ''));
+  const normPhone = v => v.replace(/[\s-]/g, '').replace(/^\+/, '').replace(/^966/, '0');
+  $('send').addEventListener('click', async () => {
+    const msg = $('message').value.trim(), ph = $('phone').value.trim();
+    const a = setErr('message', msg.length < 3 ? 'اكتب اقتراحك (3 أحرف على الأقل)' : '');
+    const b = setErr('phone', ph && !phoneOk(ph) ? 'رقم الجوال غير صحيح' : '');
+    if (!a || !b || $('hp').value) return;
+    $('send').disabled = true; $('send').textContent = 'جاري الإرسال...';
+    const { error } = await sb.from('suggestions').insert({ name: $('name').value.trim() || null, phone: ph ? normPhone(ph) : null, message: msg });
+    if (error) { console.error(error); H.toast('تعذّر إرسال الاقتراح، حاول مرة أخرى'); $('send').disabled = false; $('send').textContent = 'إرسال الاقتراح'; return; }
+    $('form-wrap').hidden = true; $('done').hidden = false; window.scrollTo({ top: 0 });
+  });
+  H.hideLoader();
+});
+</script>
+</body>
+</html>
