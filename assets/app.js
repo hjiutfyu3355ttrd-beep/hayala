@@ -1,4 +1,5 @@
 (function () {
+  document.documentElement.classList.add('js');
   const CONFIG = {
     name: 'حيالة القصيم',
     tagline: 'منصة الشاليهات والاستراحات في منطقة القصيم. حجز سهل ومميز.',
@@ -14,7 +15,7 @@
   function inject() {
     const logo = U('assets/logo.png');
     document.body.insertAdjacentHTML('afterbegin',
-      `<div id="loader"><img src="${logo}" alt="${esc(CONFIG.name)}"><div class="spinner"></div><p>جاري التحميل...</p></div>
+      `<div id="loader" role="progressbar" aria-label="جاري التحميل"><i></i></div>
       <header class="site-header"><div class="container">
         <a class="brand" href="${U('index.html')}"><img src="${logo}" alt="${esc(CONFIG.name)}"></a>
         <button class="menu-btn" aria-label="القائمة" aria-expanded="false">☰</button>
@@ -34,6 +35,8 @@
     document.querySelectorAll('.nav a[data-p]').forEach(a => a.classList.toggle('active', a.dataset.p === page || (page === 'post.html' && a.dataset.p === 'blog.html')));
     const btn = document.querySelector('.menu-btn'), nav = document.querySelector('.nav');
     btn.addEventListener('click', () => btn.setAttribute('aria-expanded', nav.classList.toggle('open')));
+    const hd = document.querySelector('.site-header'), onS = () => hd.classList.toggle('scrolled', window.scrollY > 8);
+    onS(); window.addEventListener('scroll', onS, { passive: true });
   }
 
   function hideLoader() {
@@ -49,9 +52,21 @@
     qs: n => new URLSearchParams(location.search).get(n),
     price: n => `<span class="price">${Number(n).toLocaleString('en-US')}<img src="${U('assets/riyal-symbol.png')}" alt="ريال سعودي" onerror="this.replaceWith(document.createTextNode(' ر.س'))"></span>`,
     waLink: (phone, text) => `https://wa.me/${String(phone).replace(/\D/g,'').replace(/^0/,'966')}?text=${encodeURIComponent(text || '')}`,
-    card: p => `<a class="card" href="${U('property.html')}?id=${encodeURIComponent(p.id)}">
-      <div class="card-img"><img loading="lazy" src="${esc((p.images || [])[0] || '')}" alt="${esc(p.name)}">${p.featured ? '<span class="badge">مميز</span>' : ''}</div>
-      <div class="card-body"><h3>${esc(p.name)}</h3><div class="card-district">${esc(p.district)}</div>${H.price(p.price)}</div></a>`,
+    card: p => {
+      const meta = [p.capacity && p.capacity + ' أشخاص', p.rooms && p.rooms + ' غرف', p.has_pool && 'مسبح'].filter(Boolean).join(' · ');
+      return `<a class="card" href="${U('property.html')}?id=${encodeURIComponent(p.id)}">
+      <div class="card-img"><img loading="lazy" decoding="async" src="${esc((p.images || [])[0] || '')}" alt="${esc(p.name)}" onerror="this.style.visibility='hidden'">${p.featured ? '<span class="badge">مميز</span>' : ''}${p.type ? `<span class="tag">${esc(p.type)}</span>` : ''}</div>
+      <div class="card-body"><h3>${esc(p.name)}</h3>
+        <div class="card-district"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>${esc(p.district)}</div>
+        <div class="card-meta">${esc(meta)}</div>
+        <div class="card-foot"><small>يبدأ من</small>${H.price(p.price)}</div></div></a>`;
+    },
+    reveal(scope) {
+      const els = (scope || document).querySelectorAll('.rv:not(.in)');
+      if (!('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return; }
+      const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.12 });
+      els.forEach(e => io.observe(e));
+    },
     toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
   };
 
