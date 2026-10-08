@@ -1,5 +1,4 @@
 (function () {
-  document.documentElement.classList.add('js');
   const CONFIG = {
     name: 'حيالة القصيم',
     tagline: 'منصة الشاليهات والاستراحات في منطقة القصيم. حجز سهل ومميز.',
@@ -7,73 +6,156 @@
     address: 'منطقة القصيم، المملكة العربية السعودية'
   };
   const src = document.currentScript ? document.currentScript.src : location.href;
-  const root = new URL('../', src).href; // جذر الموقع
+  const root = new URL('../', src).href;
   const U = p => root + p;
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const links = [['index.html','الرئيسية'],['blog.html','المدونة'],['suggest.html','اقترح لنا']];
+  const links = [['index.html','الرئيسية','home'],['properties.html','العقارات','search'],['blog.html','المدونة','book'],['suggest.html','اقترح لنا','chat']];
+
+  const P = {
+    home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    book: '<path d="M4 19.5V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2Z"/><path d="M8 7h8"/>',
+    chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/>',
+    menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+    x: '<path d="M6 6l12 12M18 6 6 18"/>',
+    pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>',
+    bed: '<path d="M3 18V6M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="10.5" r="1.8"/>',
+    pool: '<path d="M2 18c2 0 2-1.5 4-1.5S8 18 10 18s2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M8 15V5a2 2 0 0 1 4 0M16 15V5a2 2 0 0 0-4 0M8 9h8"/>',
+    share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/>',
+    phone: '<path d="M5 3h3l2 5-2.5 1.5a11 11 0 0 0 7 7L16 14l5 2v3a2 2 0 0 1-2 2A17 17 0 0 1 3 5a2 2 0 0 1 2-2Z"/>',
+    wa: '<path d="M3.5 20.5 5 16a8.5 8.5 0 1 1 3 3Z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 1a4 4 0 0 1-2-2l1-1-1-2Z"/>',
+    left: '<path d="m15 18-6-6 6-6"/>', right: '<path d="m9 18 6-6-6-6"/>',
+    up: '<path d="m18 15-6-6-6 6"/>', grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    filter: '<path d="M4 6h16M7 12h10M10 18h4"/>', star: '<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9Z"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>', check: '<path d="m5 12 5 5 9-10"/>'
+  };
+  const icon = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
+
+  const page = location.pathname.split('/').pop() || 'index.html';
+  const isActive = h => h === page || (page === 'post.html' && h === 'blog.html') || (page === 'property.html' && h === 'properties.html');
 
   function inject() {
     const logo = U('assets/logo.png');
     document.body.insertAdjacentHTML('afterbegin',
-      `<div id="loader" role="progressbar" aria-label="جاري التحميل"><i></i></div>
+      `<a class="skip" href="#main">تخطَّ إلى المحتوى</a>
+      <div id="progress" aria-hidden="true"></div>
       <header class="site-header"><div class="container">
-        <a class="brand" href="${U('index.html')}"><img src="${logo}" alt="${esc(CONFIG.name)}"></a>
-        <button class="menu-btn" aria-label="القائمة" aria-expanded="false">☰</button>
-        <nav class="nav">${links.map(([h,t]) => `<a href="${U(h)}" data-p="${h}">${t}</a>`).join('')}
-          <a class="btn btn-yellow" href="${U('subscription.html')}">اشترك معنا</a></nav>
+        <a class="brand" href="${U('index.html')}" aria-label="${esc(CONFIG.name)} - الرئيسية"><img src="${logo}" alt="" width="44" height="44"><span>${esc(CONFIG.name)}</span></a>
+        <nav class="nav" id="nav" aria-label="القائمة الرئيسية">${links.map(([h,t]) => `<a href="${U(h)}"${isActive(h) ? ' class="active" aria-current="page"' : ''}>${t}</a>`).join('')}</nav>
+        <div class="head-actions">
+          <a class="btn btn-yellow btn-head" href="${U('subscription.html')}">${icon('plus')}<span>سجّل عقارك</span></a>
+          <button class="icon-btn menu-btn" aria-label="فتح القائمة" aria-expanded="false" aria-controls="nav">${icon('menu')}</button>
+        </div>
       </div></header>`);
     document.body.insertAdjacentHTML('beforeend',
       `<footer class="site-footer"><div class="container">
         <div class="footer-grid">
-          <div class="footer-brand"><img src="${logo}" alt=""><p>${esc(CONFIG.tagline)}</p></div>
+          <div class="footer-brand"><img src="${logo}" alt="" width="56" height="56"><p>${esc(CONFIG.tagline)}</p></div>
           <div><h3>روابط سريعة</h3><ul>${links.concat([['subscription.html','اشترك معنا']]).map(([h,t]) => `<li><a href="${U(h)}">${t}</a></li>`).join('')}</ul></div>
           <div><h3>تواصل معنا</h3><ul><li><a href="tel:${esc(CONFIG.phone)}" dir="ltr">${esc(CONFIG.phone)}</a></li><li><a href="mailto:${esc(CONFIG.email)}">${esc(CONFIG.email)}</a></li><li>${esc(CONFIG.address)}</li></ul></div>
         </div>
         <div class="copyright">© ${new Date().getFullYear()} ${esc(CONFIG.name)}</div>
-      </div></footer>`);
-    const page = location.pathname.split('/').pop() || 'index.html';
-    document.querySelectorAll('.nav a[data-p]').forEach(a => a.classList.toggle('active', a.dataset.p === page || (page === 'post.html' && a.dataset.p === 'blog.html')));
-    const btn = document.querySelector('.menu-btn'), nav = document.querySelector('.nav');
-    btn.addEventListener('click', () => btn.setAttribute('aria-expanded', nav.classList.toggle('open')));
-    const hd = document.querySelector('.site-header'), onS = () => hd.classList.toggle('scrolled', window.scrollY > 8);
-    onS(); window.addEventListener('scroll', onS, { passive: true });
+      </div></footer>
+      <nav class="tabbar" aria-label="تنقل سريع">${links.slice(0, 3).map(([h,t,ic]) => `<a href="${U(h)}"${isActive(h) ? ' class="active" aria-current="page"' : ''}>${icon(ic)}<span>${t}</span></a>`).join('')}
+        <a href="${U('subscription.html')}"${isActive('subscription.html') ? ' class="active"' : ''}>${icon('plus')}<span>سجّل عقارك</span></a></nav>
+      <button class="to-top icon-btn" aria-label="العودة للأعلى">${icon('up')}</button>`);
+
+    const btn = document.querySelector('.menu-btn'), nav = document.getElementById('nav');
+    const setMenu = open => {
+      nav.classList.toggle('open', open); document.body.classList.toggle('menu-open', open);
+      btn.setAttribute('aria-expanded', open); btn.setAttribute('aria-label', open ? 'إغلاق القائمة' : 'فتح القائمة');
+      btn.innerHTML = icon(open ? 'x' : 'menu');
+    };
+    btn.addEventListener('click', () => setMenu(!nav.classList.contains('open')));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && nav.classList.contains('open')) setMenu(false); });
+
+    const header = document.querySelector('.site-header'), top = document.querySelector('.to-top');
+    let ticking = false;
+    const onScroll = () => {
+      const y = scrollY;
+      header.classList.toggle('scrolled', y > 8);
+      top.classList.toggle('show', y > 700);
+      ticking = false;
+    };
+    addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+    onScroll();
+    top.addEventListener('click', () => scrollTo({ top: 0, behavior: 'smooth' }));
   }
 
-  function hideLoader() {
-    const l = document.getElementById('loader');
-    if (!l) return;
-    l.classList.add('hide'); document.body.classList.add('loaded');
-    setTimeout(() => l.remove(), 400);
+  // شريط تقدّم علوي بدل اللودر الكامل
+  let progT;
+  function progress(start) {
+    const bar = document.getElementById('progress');
+    if (!bar) return;
+    clearTimeout(progT);
+    if (start) { bar.className = 'run'; return; }
+    bar.className = 'done';
+    progT = setTimeout(() => { bar.className = ''; }, 500);
   }
+  const hideLoader = () => { progress(false); document.body.classList.add('loaded'); };
 
-  // مساعدات مشتركة
+  // تلاشي الصور عند تحميلها
+  document.addEventListener('load', e => { if (e.target.tagName === 'IMG') e.target.classList.add('in'); }, true);
+  document.addEventListener('error', e => { if (e.target.tagName === 'IMG' && e.target.closest('.card-img, .gal, .city-card')) e.target.classList.add('broken'); }, true);
+
+  // تحميل مسبق للصفحات عند المرور فوق الروابط لتنقل فوري
+  const prefetched = new Set();
+  const prefetch = a => {
+    if (!a || !a.href || a.target || prefetched.has(a.href)) return;
+    const u = new URL(a.href);
+    if (u.origin !== location.origin || u.pathname === location.pathname && u.search === location.search) return;
+    prefetched.add(a.href);
+    const l = document.createElement('link'); l.rel = 'prefetch'; l.href = a.href; document.head.appendChild(l);
+  };
+  document.addEventListener('pointerover', e => prefetch(e.target.closest && e.target.closest('a[href]')), { passive: true });
+  document.addEventListener('touchstart', e => prefetch(e.target.closest && e.target.closest('a[href]')), { passive: true });
+
+  // ظهور تدريجي للعناصر عند التمرير
+  const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(en => {
+    if (en.isIntersecting) { en.target.classList.add('seen'); io.unobserve(en.target); }
+  }), { rootMargin: '0px 0px -40px 0px' }) : null;
+  const reveal = (scope = document) => scope.querySelectorAll('.reveal:not(.seen)').forEach(el => io ? io.observe(el) : el.classList.add('seen'));
+
+  const fmt = n => Number(n || 0).toLocaleString('en-US');
+
   const H = window.H = {
-    CONFIG, esc, url: U, hideLoader,
+    CONFIG, esc, url: U, hideLoader, icon, reveal, fmt,
     qs: n => new URLSearchParams(location.search).get(n),
-    price: n => `<span class="price">${Number(n).toLocaleString('en-US')}<img src="${U('assets/riyal-symbol.png')}" alt="ريال سعودي" onerror="this.replaceWith(document.createTextNode(' ر.س'))"></span>`,
+    price: n => `<span class="price">${fmt(n)}<img src="${U('assets/riyal-symbol.png')}" alt="ريال سعودي" onerror="this.replaceWith(document.createTextNode(' ر.س'))"></span>`,
     waLink: (phone, text) => `https://wa.me/${String(phone).replace(/\D/g,'').replace(/^0/,'966')}?text=${encodeURIComponent(text || '')}`,
-    card: p => {
-      const meta = [p.capacity && p.capacity + ' أشخاص', p.rooms && p.rooms + ' غرف', p.has_pool && 'مسبح'].filter(Boolean).join(' · ');
-      return `<a class="card" href="${U('property.html')}?id=${encodeURIComponent(p.id)}">
-      <div class="card-img"><img loading="lazy" decoding="async" src="${esc((p.images || [])[0] || '')}" alt="${esc(p.name)}" onerror="this.style.visibility='hidden'">${p.featured ? '<span class="badge">مميز</span>' : ''}${p.type ? `<span class="tag">${esc(p.type)}</span>` : ''}</div>
+    card: (p, i = 0) => {
+      const img = (p.images || [])[0];
+      const city = p.cities && p.cities.name;
+      const facts = [p.capacity && `${icon('users')}${esc(p.capacity)}`, p.rooms && `${icon('bed')}${esc(p.rooms)}`, p.has_pool && `${icon('pool')}مسبح`].filter(Boolean);
+      return `<a class="card reveal" style="--d:${Math.min(i, 8) * 45}ms" href="${U('property.html')}?id=${encodeURIComponent(p.id)}">
+      <div class="card-img">${img ? `<img loading="lazy" decoding="async" src="${esc(img)}" alt="${esc(p.name)}">` : ''}
+        <div class="card-tags">${p.featured ? `<span class="badge">${icon('star')}مميز</span>` : ''}${p.type ? `<span class="badge badge-glass">${esc(p.type)}</span>` : ''}</div>
+        ${(p.images || []).length > 1 ? `<span class="img-count">${icon('grid')}${p.images.length}</span>` : ''}
+      </div>
       <div class="card-body"><h3>${esc(p.name)}</h3>
-        <div class="card-district"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>${esc(p.district)}</div>
-        <div class="card-meta">${esc(meta)}</div>
+        <div class="card-district">${icon('pin')}${esc([p.district, city].filter(Boolean).join('، '))}</div>
+        ${facts.length ? `<div class="facts">${facts.map(f => `<span>${f}</span>`).join('')}</div>` : ''}
         <div class="card-foot"><small>يبدأ من</small>${H.price(p.price)}</div></div></a>`;
     },
-    reveal(scope) {
-      const els = (scope || document).querySelectorAll('.rv:not(.in)');
-      if (!('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return; }
-      const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.12 });
-      els.forEach(e => io.observe(e));
+    skeleton: (n = 8) => Array.from({ length: n }, () => `<div class="card sk-card" aria-hidden="true"><div class="card-img sk"></div><div class="card-body"><div class="sk sk-line w80"></div><div class="sk sk-line w50"></div><div class="sk sk-line w40 tall"></div></div></div>`).join(''),
+    empty: (title, text = '', action = '') => `<div class="empty" style="grid-column:1/-1"><div class="empty-ic">${icon('search')}</div><strong>${title}</strong>${text ? `<p>${text}</p>` : ''}${action}</div>`,
+    toast(msg, type = '') {
+      let wrap = document.querySelector('.toasts');
+      if (!wrap) { wrap = document.createElement('div'); wrap.className = 'toasts'; wrap.setAttribute('role', 'status'); wrap.setAttribute('aria-live', 'polite'); document.body.appendChild(wrap); }
+      const t = document.createElement('div'); t.className = 'toast ' + type; t.textContent = msg; wrap.appendChild(t);
+      setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 3000);
     },
-    toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+    debounce: (fn, ms = 300) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
   };
 
   document.addEventListener('DOMContentLoaded', () => {
     inject();
-    // الصفحة اللي بتجلب بيانات تحط <body data-hold> وتنادي H.hideLoader() بعد التحميل
-    if (!document.body.hasAttribute('data-hold')) window.addEventListener('load', () => setTimeout(hideLoader, 300));
-    setTimeout(hideLoader, 8000); // أمان
+    progress(true);
+    document.querySelectorAll('img').forEach(img => { if (img.complete && img.naturalWidth) img.classList.add('in'); });
+    if (!document.body.hasAttribute('data-hold')) window.addEventListener('load', hideLoader);
+    setTimeout(hideLoader, 8000);
+    reveal();
+    new MutationObserver(() => reveal()).observe(document.getElementById('main') || document.body, { childList: true, subtree: true });
   });
 })();

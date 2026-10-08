@@ -2,17 +2,17 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>حيالة القصيم | شاليهات واستراحات في القصيم</title>
 <meta name="description" content="منصة حجز شاليهات واستراحات ومنتجعات في القصيم: بريدة، عنيزة، البكيرية وغيرها. تصفّح العروض واحجز عبر واتساب.">
 <meta name="theme-color" content="#14487F">
 <link rel="icon" href="assets/logo.png">
+<link rel="preconnect" href="https://onktlkgabkjlxnhumoez.supabase.co" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="image" href="assets/hero.webp" fetchpriority="high">
 <meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
 <meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="حيالة القصيم | شاليهات واستراحات في القصيم">
-<meta property="og:description" content="منصة حجز شاليهات واستراحات ومنتجعات في القصيم: بريدة، عنيزة، البكيرية وغيرها. تصفّح العروض واحجز عبر واتساب."><meta property="og:image" content="assets/logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<meta property="og:description" content="منصة حجز شاليهات واستراحات ومنتجعات في القصيم: بريدة، عنيزة، البكيرية وغيرها. تصفّح العروض واحجز عبر واتساب."><meta property="og:image" content="assets/hero.webp">
 <link rel="stylesheet" href="assets/style.css">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script defer src="assets/supabase.js"></script>
@@ -20,60 +20,50 @@
 </head>
 <body data-hold>
 <main id="main">
-  <section class="hero"><div class="container">
-    <h1>اكتشف أجمل <em>الشاليهات والاستراحات</em> في القصيم</h1>
-    <p class="lead">قارن الأسعار، شاهد الصور، واحجز مباشرة مع المالك عبر واتساب.</p>
-    <form class="search" action="properties.html" method="get">
-      <div class="sf"><label for="s-city">المدينة</label><select id="s-city" name="city"><option value="">كل المدن</option></select></div>
-      <div class="sf"><label for="s-type">نوع العقار</label><select id="s-type" name="type"><option value="">كل الأنواع</option><option>شاليه</option><option>استراحة</option><option>منتجع</option><option>شقة</option></select></div>
-      <button class="btn btn-yellow" type="submit">ابحث الآن</button>
-    </form>
-    <div class="hero-stats">
-      <div><b id="st-p">—</b><span>عقار متاح</span></div>
-      <div><b id="st-c">—</b><span>مدن</span></div>
-      <div><b>واتساب</b><span>حجز مباشر مع المالك</span></div>
+  <section class="hero">
+    <div class="hero-bg"><img src="assets/hero.webp" alt="" fetchpriority="high"></div>
+    <div class="container">
+      <span class="hero-eyebrow" id="eyebrow">أفضل وجهات الاسترخاء في القصيم</span>
+      <h1>استراحتك المثالية في <em>القصيم</em> على بُعد ضغطة</h1>
+      <p class="lead">شاليهات واستراحات في بريدة وعنيزة وما حولها. قارن الأسعار وتواصل مع المالك مباشرة.</p>
+      <form class="search-box" id="hero-search" action="properties.html" role="search" aria-label="ابحث عن عقار">
+        <label class="sf" for="h-q"><span>ابحث</span><input id="h-q" name="q" type="search" placeholder="اسم العقار أو الحي" autocomplete="off"></label>
+        <label class="sf" for="h-city"><span>المدينة</span><select id="h-city" name="city"><option value="">كل المدن</option></select></label>
+        <label class="sf" for="h-type"><span>النوع</span><select id="h-type" name="type"><option value="">كل الأنواع</option><option>شاليه</option><option>استراحة</option><option>منتجع</option><option>شقة</option></select></label>
+        <button class="btn btn-yellow btn-lg" type="submit"><span id="h-ic"></span>ابحث</button>
+      </form>
+      <div class="quick" id="quick" aria-label="بحث سريع"></div>
     </div>
-  </div></section>
+  </section>
 
-  <div class="qchips"><div class="container"><div class="row">
-    <a class="qc" href="properties.html?type=شاليه">شاليهات</a>
-    <a class="qc" href="properties.html?type=استراحة">استراحات</a>
-    <a class="qc" href="properties.html?type=منتجع">منتجعات</a>
-    <a class="qc" href="properties.html?type=شقة">شقق</a>
-    <a class="qc" href="properties.html?pool=1">بمسبح</a>
-    <a class="qc" href="properties.html?featured=1">العروض المميزة</a>
-  </div></div></div>
+  <div class="container"><div class="stats reveal" id="stats" aria-label="إحصائيات المنصة">
+    <div><strong id="s-props">—</strong><span>عقار متاح</span></div>
+    <div><strong id="s-cities">—</strong><span>مدينة</span></div>
+    <div><strong>واتساب</strong><span>حجز مباشر</span></div>
+  </div></div>
 
-  <section class="section rv"><div class="container">
-    <div class="section-head"><h2>تصفّح حسب المدينة</h2></div>
+  <section class="section"><div class="container">
+    <div class="section-head"><div><h2>تصفّح حسب المدينة</h2><p>اختر وجهتك وشاهد كل العقارات المتاحة فيها</p></div></div>
     <div class="cities" id="cities"></div>
   </div></section>
 
-  <section class="section rv"><div class="container">
-    <div class="section-head"><h2>العروض المميزة</h2><a class="link-more" href="properties.html?featured=1">عرض الكل</a></div>
+  <section class="section" style="padding-top:0"><div class="container">
+    <div class="section-head"><div><h2>العروض المميزة</h2><p>عروض مميّزة على المنصة</p></div><a class="link-more" href="properties.html?featured=1">عرض الكل<span data-i="left"></span></a></div>
     <div class="grid" id="featured"></div>
   </div></section>
 
-  <section class="section rv"><div class="container">
-    <div class="section-head"><h2>لماذا حيالة القصيم؟</h2></div>
-    <div class="why">
-      <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><div><h3>تواصل مباشر مع المالك</h3><p>احجز عبر واتساب أو اتصل بالمالك مباشرة بدون وسطاء.</p></div></div>
-      <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg><div><h3>عقارات تتم مراجعتها</h3><p>لا يظهر أي عقار في الموقع إلا بعد مراجعته واعتماده.</p></div></div>
-      <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg><div><h3>أسعار واضحة</h3><p>أسعار وسط الأسبوع ونهايته والإجازات ظاهرة قبل ما تتواصل.</p></div></div>
-    </div>
-  </div></section>
-
-  <section class="section rv"><div class="container">
-    <div class="section-head"><h2>أحدث العقارات</h2><a class="link-more" href="properties.html">عرض الكل</a></div>
+  <section class="section" style="padding-top:0"><div class="container">
+    <div class="section-head"><div><h2>أحدث العقارات</h2><p>آخر ما أُضيف على المنصة</p></div><a class="link-more" href="properties.html">عرض الكل<span data-i="left"></span></a></div>
     <div class="grid" id="latest"></div>
   </div></section>
 
-  <section class="section rv"><div class="container">
-    <div class="owner-banner" style="background-image:url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1000&h=500&fit=crop&q=80')">
+  <section class="section" style="padding-top:0"><div class="container">
+    <div class="owner-banner reveal" style="background-image:url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1400&h=600&fit=crop&q=75')">
       <div class="in">
-        <h2>لديك عقار؟ سجّل عقارك</h2>
-        <p>سجّل عقارك في حيالة القصيم وابدأ باستقبال الحجوزات بكل سهولة</p>
-        <a class="btn btn-yellow" href="subscription.html">اشترك الآن</a>
+        <h2>لديك شاليه أو استراحة؟</h2>
+        <p>انضم لحيالة القصيم وابدأ باستقبال الحجوزات من الباحثين عن شاليه واستراحة في القصيم</p>
+        <ul id="owner-perks"><li>ظهور فوري أمام الباحثين في منطقتك</li><li>تواصل مباشر مع العملاء عبر واتساب</li><li>باقات مرنة تناسب احتياجك</li></ul>
+        <a class="btn btn-yellow btn-lg" href="subscription.html">سجّل عقارك الآن</a>
       </div>
     </div>
   </div></section>
@@ -81,31 +71,43 @@
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
   const $ = id => document.getElementById(id);
-  const skCard = '<div class="sk-card"><div class="sk sk-i"></div><div class="sk sk-t"></div><div class="sk sk-t s"></div></div>';
-  $('cities').innerHTML = '<div class="sk sk-city"></div>'.repeat(5);
-  $('featured').innerHTML = skCard.repeat(4);
-  $('latest').innerHTML = skCard.repeat(8);
-  const bg = u => H.esc(String(u).replace(/['"()\\\s]/g, ch => '%' + ch.charCodeAt(0).toString(16)));
-  const fill = (id, rows, render, msg) => { $(id).innerHTML = rows && rows.length ? rows.map(render).join('') : `<p class="empty" style="grid-column:1/-1">${msg}</p>`; };
+  document.querySelectorAll('[data-i]').forEach(s => s.outerHTML = H.icon(s.dataset.i));
+  $('eyebrow').insertAdjacentHTML('afterbegin', H.icon('star'));
+  $('h-ic').outerHTML = H.icon('search');
+  document.querySelectorAll('#owner-perks li').forEach(li => li.insertAdjacentHTML('afterbegin', H.icon('check')));
+  $('quick').innerHTML = [['شاليه','شاليهات'],['استراحة','استراحات'],['منتجع','منتجعات']].map(([v,t]) => `<a href="properties.html?type=${encodeURIComponent(v)}">${t}</a>`).join('') + `<a href="properties.html?pool=1">${H.icon('pool')}بمسبح</a>`;
+
+  $('hero-search').addEventListener('submit', e => {
+    e.preventDefault();
+    const p = new URLSearchParams();
+    ['q','city','type'].forEach(k => { const v = e.target.elements[k].value.trim(); if (v) p.set(k, v); });
+    location.href = 'properties.html' + (p.toString() ? '?' + p : '');
+  });
+
+  $('cities').innerHTML = Array.from({ length: 5 }, () => '<div class="city-card sk" aria-hidden="true"></div>').join('');
+  $('featured').innerHTML = H.skeleton(4);
+  $('latest').innerHTML = H.skeleton(8);
+
+  const fill = (id, rows, render, msg) => { $(id).innerHTML = rows && rows.length ? rows.map(render).join('') : H.empty(msg); };
   try {
+    const sel = '*, cities(name)';
     const [c, f, l] = await Promise.all([
       sb.from('cities_with_count').select('*').order('sort'),
-      sb.from('properties').select('*').eq('featured', true).order('created_at', { ascending: false }).limit(8),
-      sb.from('properties').select('*').order('created_at', { ascending: false }).limit(12)
+      sb.from('properties').select(sel).eq('featured', true).order('created_at', { ascending: false }).limit(8),
+      sb.from('properties').select(sel, { count: 'exact' }).order('created_at', { ascending: false }).limit(8)
     ]);
     if (c.error || f.error || l.error) throw (c.error || f.error || l.error);
-    fill('cities', c.data, x => `<a class="city-card" href="properties.html?city=${encodeURIComponent(x.name)}"${x.image ? ` style="background-image:url('${bg(x.image)}')"` : ''}><strong>${H.esc(x.name)}</strong><span>${x.properties_count} عقار</span></a>`, 'لا توجد مدن حاليًا');
-    fill('featured', f.data, H.card, 'لا توجد عروض مميزة حاليًا');
+    $('h-city').insertAdjacentHTML('beforeend', c.data.map(x => `<option>${H.esc(x.name)}</option>`).join(''));
+    fill('cities', c.data, x => `<a class="city-card reveal" href="properties.html?city=${encodeURIComponent(x.name)}">${x.image ? `<img loading="lazy" src="${H.esc(x.image)}" alt="">` : ''}<div class="ct"><strong>${H.esc(x.name)}</strong><span>${x.properties_count} عقار</span></div></a>`, 'لا توجد مدن حاليًا');
+    fill('featured', f.data.slice(0, 4), H.card, 'لا توجد عروض مميزة حاليًا');
     fill('latest', l.data, H.card, 'لا توجد عقارات حاليًا');
-    $('s-city').insertAdjacentHTML('beforeend', (c.data || []).map(x => `<option>${H.esc(x.name)}</option>`).join(''));
-    $('st-p').textContent = (c.data || []).reduce((a, x) => a + (x.properties_count || 0), 0);
-    $('st-c').textContent = (c.data || []).length;
+    $('s-props').textContent = H.fmt(l.count ?? c.data.reduce((s, x) => s + (x.properties_count || 0), 0));
+    $('s-cities').textContent = H.fmt(c.data.length);
   } catch (e) {
     console.error(e);
-    ['cities', 'featured', 'latest'].forEach(id => $(id).innerHTML = '<p class="empty" style="grid-column:1/-1">تعذّر تحميل البيانات، حاول مرة أخرى لاحقًا</p>');
+    ['cities', 'featured', 'latest'].forEach(id => $(id).innerHTML = H.empty('تعذّر تحميل البيانات', 'تحقّق من اتصالك وحاول مرة أخرى', '<button class="btn btn-navy" onclick="location.reload()">إعادة المحاولة</button>'));
   }
   H.hideLoader();
-  H.reveal();
 });
 </script>
 </body>

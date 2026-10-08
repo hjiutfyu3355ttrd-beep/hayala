@@ -2,88 +2,190 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>العقارات | حيالة القصيم</title>
 <meta name="description" content="تصفّح شاليهات واستراحات القصيم وفلترها حسب المدينة والسعر والنوع.">
 <meta name="theme-color" content="#14487F">
 <link rel="icon" href="assets/logo.png">
+<link rel="preconnect" href="https://onktlkgabkjlxnhumoez.supabase.co" crossorigin>
 <meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
 <meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="العقارات | حيالة القصيم">
-<meta property="og:description" content="تصفّح شاليهات واستراحات القصيم وفلترها حسب المدينة والسعر والنوع."><meta property="og:image" content="assets/logo.png">
+<meta property="og:description" content="تصفّح شاليهات واستراحات القصيم وفلترها حسب المدينة والسعر والنوع."><meta property="og:image" content="assets/hero.webp">
 <link rel="stylesheet" href="assets/style.css">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script defer src="assets/supabase.js"></script>
 <script defer src="assets/app.js"></script>
 </head>
 <body data-hold>
-<main id="main"><section class="section"><div class="container">
-  <h1 class="page-title">العقارات</h1>
-  <form class="filters" id="filters">
-    <div class="field"><label for="f-city">المدينة</label><select id="f-city"><option value="">كل المدن</option></select></div>
-    <div class="field"><label for="f-type">النوع</label><select id="f-type"><option value="">كل الأنواع</option><option>شاليه</option><option>استراحة</option><option>منتجع</option><option>شقة</option></select></div>
-    <div class="field"><label for="f-min">السعر من</label><input id="f-min" type="number" min="0" inputmode="numeric" placeholder="0"></div>
-    <div class="field"><label for="f-max">السعر إلى</label><input id="f-max" type="number" min="0" inputmode="numeric" placeholder="بدون حد"></div>
-    <div class="field"><label for="f-sort">الترتيب</label><select id="f-sort"><option value="new">الأحدث</option><option value="asc">السعر: الأقل أولًا</option><option value="desc">السعر: الأعلى أولًا</option></select></div>
-    <label class="chk wide"><input type="checkbox" id="f-feat"> العروض المميزة فقط</label>
-    <label class="chk wide"><input type="checkbox" id="f-pool"> بمسبح فقط</label>
-    <div class="actions"><button class="btn btn-navy" type="submit">بحث</button><button class="btn btn-line" type="button" id="reset">مسح</button></div>
-  </form>
-  <p class="result-count" id="count"></p>
-  <div class="grid" id="list"></div>
-  <div style="text-align:center;margin-top:20px"><button class="btn btn-navy" id="more" hidden>عرض المزيد</button></div>
-</div></section></main>
+<main id="main">
+  <div class="page-hero"><div class="container">
+    <h1 id="title">العقارات</h1>
+    <p>ابحث بالاسم أو الحي، والنتائج تتحدّث فورًا</p>
+  </div></div>
+  <div class="container">
+    <div class="toolbar">
+      <div class="searchbar"><span data-i="search"></span>
+        <label for="q" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">ابحث</label>
+        <input id="q" type="search" placeholder="ابحث باسم العقار أو الحي..." autocomplete="off" enterkeyhint="search">
+        <button class="clear" type="button" id="q-clear" aria-label="مسح البحث" hidden></button>
+      </div>
+      <div class="tb-row">
+        <div class="seg" id="types" role="group" aria-label="نوع العقار"></div>
+        <button class="filter-btn" type="button" id="open-filters" aria-haspopup="dialog"><span data-i="filter"></span>فلاتر<span class="dot" id="f-dot"></span></button>
+      </div>
+    </div>
+
+    <div class="results-head">
+      <p class="result-count" id="count" aria-live="polite"></p>
+      <label class="sort-sel">ترتيب
+        <select id="f-sort"><option value="new">الأحدث</option><option value="asc">السعر: الأقل</option><option value="desc">السعر: الأعلى</option></select>
+      </label>
+    </div>
+    <div class="active-chips" id="chips"></div>
+    <div class="grid" id="list" aria-busy="true"></div>
+    <div class="sentinel" id="sentinel"></div>
+    <div class="load-more-wrap"><button class="btn btn-line" id="more" hidden>عرض المزيد</button></div>
+  </div>
+</main>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" aria-hidden="true">
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-panel">
+    <div class="sheet-head"><h2 id="sheet-title">الفلاتر</h2><button class="icon-btn" type="button" data-close aria-label="إغلاق"></button></div>
+    <div class="sheet-body">
+      <div class="field"><label for="f-city">المدينة</label><select id="f-city"><option value="">كل المدن</option></select></div>
+      <div class="field"><label>نطاق السعر لليلة</label>
+        <div class="range"><input id="f-min" type="number" min="0" inputmode="numeric" placeholder="من" aria-label="السعر من"><input id="f-max" type="number" min="0" inputmode="numeric" placeholder="إلى" aria-label="السعر إلى"></div></div>
+      <label class="toggle">العروض المميزة فقط<input type="checkbox" id="f-feat"></label>
+      <label class="toggle">يوجد مسبح<input type="checkbox" id="f-pool"></label>
+    </div>
+    <div class="sheet-foot"><button class="btn btn-line" type="button" id="reset">مسح الكل</button><button class="btn btn-navy" type="button" id="apply">عرض النتائج</button></div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-  const $ = id => document.getElementById(id), PAGE = 24;
-  let cities = [], page = 0;
-  const f = { city: $('f-city'), type: $('f-type'), min: $('f-min'), max: $('f-max'), sort: $('f-sort'), feat: $('f-feat'), pool: $('f-pool') };
+  const $ = id => document.getElementById(id), PAGE = 12;
+  document.querySelectorAll('[data-i]').forEach(s => s.outerHTML = H.icon(s.dataset.i));
+  $('q-clear').innerHTML = H.icon('x');
+  document.querySelectorAll('.sheet-head [data-close]').forEach(b => b.innerHTML = H.icon('x'));
+
+  const TYPES = ['شاليه', 'استراحة', 'منتجع', 'شقة'];
+  const st = { q: H.qs('q') || '', type: H.qs('type') || '', city: H.qs('city') || '', min: H.qs('min') || '', max: H.qs('max') || '', sort: H.qs('sort') || 'new', feat: H.qs('featured') === '1', pool: H.qs('pool') === '1' };
+  let cities = [], page = 0, total = 0, loading = false, reqId = 0;
+
+  $('types').innerHTML = [['', 'الكل'], ...TYPES.map(t => [t, t])].map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="false">${t}</button>`).join('');
+  const syncUI = () => {
+    $('q').value = st.q; $('q-clear').hidden = !st.q; $('f-sort').value = st.sort;
+    $('types').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === st.type));
+    const n = [st.city, st.min, st.max, st.feat, st.pool].filter(Boolean).length;
+    $('f-dot').textContent = n || '';
+    $('title').textContent = st.city ? `العقارات في ${st.city}` : st.feat ? 'العروض المميزة' : st.type ? `${st.type} في القصيم` : 'العقارات';
+    const chips = [
+      st.q && ['q', `"${st.q}"`], st.type && ['type', st.type], st.city && ['city', st.city],
+      st.min && ['min', `من ${H.fmt(st.min)}`], st.max && ['max', `حتى ${H.fmt(st.max)}`],
+      st.feat && ['feat', 'مميز'], st.pool && ['pool', 'بمسبح']
+    ].filter(Boolean);
+    $('chips').innerHTML = chips.map(([k, t]) => `<button class="achip" type="button" data-k="${k}" aria-label="إزالة فلتر ${H.esc(t)}">${H.esc(t)}${H.icon('x')}</button>`).join('') + (chips.length > 1 ? '<button class="achip clear-all" type="button" data-k="all">مسح الكل</button>' : '');
+  };
+
+  const syncURL = () => {
+    const p = new URLSearchParams();
+    if (st.q) p.set('q', st.q); if (st.type) p.set('type', st.type); if (st.city) p.set('city', st.city);
+    if (st.min) p.set('min', st.min); if (st.max) p.set('max', st.max);
+    if (st.sort !== 'new') p.set('sort', st.sort); if (st.feat) p.set('featured', '1'); if (st.pool) p.set('pool', '1');
+    history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+  };
 
   async function run(reset) {
-    if (reset) { page = 0; $('list').innerHTML = ''; }
-    const city = cities.find(c => c.name === f.city.value);
-    const sync = new URLSearchParams();
-    if (f.city.value) sync.set('city', f.city.value);
-    if (f.type.value) sync.set('type', f.type.value);
-    if (f.min.value) sync.set('min', f.min.value);
-    if (f.max.value) sync.set('max', f.max.value);
-    if (f.sort.value !== 'new') sync.set('sort', f.sort.value);
-    if (f.feat.checked) sync.set('featured', '1');
-    if (f.pool.checked) sync.set('pool', '1');
-    history.replaceState(null, '', location.pathname + (sync.toString() ? '?' + sync : ''));
+    if (loading && !reset) return;
+    const my = ++reqId;
+    loading = true;
+    if (reset) { page = 0; $('list').innerHTML = H.skeleton(8); $('list').setAttribute('aria-busy', 'true'); syncUI(); syncURL(); }
+    else $('list').insertAdjacentHTML('beforeend', H.skeleton(4));
 
-    let q = sb.from('properties').select('*', { count: 'exact' });
+    const city = cities.find(c => c.name === st.city);
+    let q = sb.from('properties').select('*, cities(name)', { count: 'exact' });
+    const term = st.q.replace(/[%,()*\\]/g, ' ').trim();
+    if (term) {
+      const cityIds = cities.filter(c => c.name.includes(term) || term.includes(c.name)).map(c => c.id);
+      q = q.or(`name.ilike.%${term}%,district.ilike.%${term}%,type.ilike.%${term}%${cityIds.length ? `,city_id.in.(${cityIds.join(',')})` : ''}`);
+    }
     if (city) q = q.eq('city_id', city.id);
-    if (f.type.value) q = q.eq('type', f.type.value);
-    if (f.min.value) q = q.gte('price', f.min.value);
-    if (f.max.value) q = q.lte('price', f.max.value);
-    if (f.feat.checked) q = q.eq('featured', true);
-    if (f.pool.checked) q = q.eq('has_pool', true);
-    q = f.sort.value === 'new' ? q.order('created_at', { ascending: false }) : q.order('price', { ascending: f.sort.value === 'asc' });
+    if (st.type) q = q.eq('type', st.type);
+    if (st.min) q = q.gte('price', st.min);
+    if (st.max) q = q.lte('price', st.max);
+    if (st.feat) q = q.eq('featured', true);
+    if (st.pool) q = q.eq('has_pool', true);
+    q = st.sort === 'new' ? q.order('created_at', { ascending: false }) : q.order('price', { ascending: st.sort === 'asc' });
     const { data, count, error } = await q.range(page * PAGE, page * PAGE + PAGE - 1);
-    if (error) { console.error(error); $('list').innerHTML = '<p class="empty" style="grid-column:1/-1">تعذّر تحميل العقارات، حاول مرة أخرى لاحقًا</p>'; $('more').hidden = true; return; }
-    $('list').insertAdjacentHTML('beforeend', data.map(H.card).join(''));
-    if (!count) $('list').innerHTML = '<p class="empty" style="grid-column:1/-1">لا توجد عقارات تطابق بحثك، جرّب تغيير الفلاتر</p>';
-    $('count').textContent = count ? `${count} عقار` : '';
-    $('more').hidden = (page + 1) * PAGE >= (count || 0);
+    if (my !== reqId) return;
+    loading = false;
+    $('list').querySelectorAll('.sk-card').forEach(s => s.remove());
+    $('list').setAttribute('aria-busy', 'false');
+    if (error) {
+      console.error(error);
+      $('list').innerHTML = H.empty('تعذّر تحميل العقارات', 'تحقّق من اتصالك وحاول مرة أخرى', '<button class="btn btn-navy" type="button" id="retry">إعادة المحاولة</button>');
+      $('retry').onclick = () => run(true); $('more').hidden = true; $('count').textContent = ''; return;
+    }
+    total = count || 0;
+    $('list').insertAdjacentHTML('beforeend', data.map((p, i) => H.card(p, i)).join(''));
+    if (!total) $('list').innerHTML = H.empty('لا توجد نتائج مطابقة', 'جرّب كلمات أخرى أو خفّف الفلاتر', '<button class="btn btn-navy" type="button" id="clear-empty">مسح الفلاتر</button>');
+    if ($('clear-empty')) $('clear-empty').onclick = resetAll;
+    $('count').innerHTML = total ? `<strong>${H.fmt(total)}</strong> عقار` : '';
+    $('more').hidden = (page + 1) * PAGE >= total;
   }
 
+  const resetAll = () => { Object.assign(st, { q: '', type: '', city: '', min: '', max: '', feat: false, pool: false }); fillSheet(); run(true); };
+  const fillSheet = () => { $('f-city').value = st.city; $('f-min').value = st.min; $('f-max').value = st.max; $('f-feat').checked = st.feat; $('f-pool').checked = st.pool; };
+
+  // بحث فوري أثناء الكتابة
+  const live = H.debounce(() => run(true), 320);
+  $('q').addEventListener('input', e => { st.q = e.target.value.trim(); $('q-clear').hidden = !e.target.value; live(); });
+  $('q').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.nativeEvent?.isComposing && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); e.target.blur(); } });
+  $('q-clear').addEventListener('click', () => { st.q = ''; $('q').value = ''; $('q').focus(); run(true); });
+  $('types').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { st.type = b.dataset.v; run(true); } });
+  $('f-sort').addEventListener('change', e => { st.sort = e.target.value; run(true); });
+  $('chips').addEventListener('click', e => {
+    const b = e.target.closest('.achip'); if (!b) return;
+    const k = b.dataset.k;
+    if (k === 'all') return resetAll();
+    st[k] = typeof st[k] === 'boolean' ? false : ''; fillSheet(); run(true);
+  });
+
+  // لوحة الفلاتر
+  const sheet = $('sheet'); let lastFocus;
+  const openSheet = open => {
+    sheet.classList.toggle('open', open); sheet.setAttribute('aria-hidden', !open); document.body.classList.toggle('sheet-open', open);
+    if (open) { lastFocus = document.activeElement; fillSheet(); setTimeout(() => $('f-city').focus(), 50); } else if (lastFocus) lastFocus.focus();
+  };
+  $('open-filters').addEventListener('click', () => openSheet(true));
+  sheet.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => openSheet(false)));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheet.classList.contains('open')) openSheet(false); });
+  $('apply').addEventListener('click', () => {
+    Object.assign(st, { city: $('f-city').value, min: $('f-min').value, max: $('f-max').value, feat: $('f-feat').checked, pool: $('f-pool').checked });
+    openSheet(false); run(true);
+  });
+  $('reset').addEventListener('click', () => { Object.assign(st, { city: '', min: '', max: '', feat: false, pool: false }); fillSheet(); });
+
+  // تحميل تلقائي عند الوصول لنهاية القائمة
+  const more = () => { if (!loading && (page + 1) * PAGE < total) { page++; run(false); } };
+  $('more').addEventListener('click', more);
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { if (es[0].isIntersecting && page > -1 && total) more(); }, { rootMargin: '600px' }).observe($('sentinel'));
+
+  syncUI();
+  $('list').innerHTML = H.skeleton(8);
   try {
     const r = await sb.from('cities').select('id,name').order('sort');
     if (r.error) throw r.error;
     cities = r.data;
-    f.city.insertAdjacentHTML('beforeend', cities.map(c => `<option>${H.esc(c.name)}</option>`).join(''));
-    f.city.value = H.qs('city') || ''; f.type.value = H.qs('type') || '';
-    f.min.value = H.qs('min') || ''; f.max.value = H.qs('max') || '';
-    f.sort.value = H.qs('sort') || 'new'; f.feat.checked = H.qs('featured') === '1'; f.pool.checked = H.qs('pool') === '1';
-    if (f.city.value !== (H.qs('city') || '')) f.city.value = '';
+    $('f-city').insertAdjacentHTML('beforeend', cities.map(c => `<option>${H.esc(c.name)}</option>`).join(''));
+    if (st.city && !cities.some(c => c.name === st.city)) st.city = '';
     await run(true);
   } catch (e) {
     console.error(e);
-    $('list').innerHTML = '<p class="empty" style="grid-column:1/-1">تعذّر تحميل البيانات، حاول مرة أخرى لاحقًا</p>';
+    $('list').innerHTML = H.empty('تعذّر تحميل البيانات', 'حاول مرة أخرى لاحقًا');
   }
-  $('filters').addEventListener('submit', e => { e.preventDefault(); run(true); });
-  $('reset').addEventListener('click', () => { $('filters').reset(); run(true); });
-  $('more').addEventListener('click', () => { page++; run(false); });
   H.hideLoader();
 });
 </script>

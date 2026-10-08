@@ -2,62 +2,174 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>تفاصيل العقار | حيالة القصيم</title>
 <meta name="description" content="تفاصيل الشاليه أو الاستراحة: الصور والمميزات والسعر وتواصل مباشر مع المالك.">
 <meta name="theme-color" content="#14487F">
 <link rel="icon" href="assets/logo.png">
+<link rel="preconnect" href="https://onktlkgabkjlxnhumoez.supabase.co" crossorigin>
 <meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
 <meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="تفاصيل العقار | حيالة القصيم">
-<meta property="og:description" content="تفاصيل الشاليه أو الاستراحة: الصور والمميزات والسعر وتواصل مباشر مع المالك."><meta property="og:image" content="assets/logo.png">
+<meta property="og:description" content="تفاصيل الشاليه أو الاستراحة: الصور والمميزات والسعر وتواصل مباشر مع المالك."><meta property="og:image" content="assets/hero.webp">
 <link rel="stylesheet" href="assets/style.css">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script defer src="assets/supabase.js"></script>
 <script defer src="assets/app.js"></script>
 </head>
 <body data-hold>
-<main id="main"><section class="section"><div class="container">
-  <a class="back" href="properties.html">رجوع للعقارات</a>
-  <div id="view"></div>
+<main id="main"><section class="section" style="padding-top:20px"><div class="container">
+  <div id="view">
+    <div aria-hidden="true">
+      <div class="sk sk-line w30" style="margin-bottom:16px"></div>
+      <div class="sk sk-line w60 tall" style="height:28px;margin:0 0 10px"></div>
+      <div class="sk sk-line w40" style="margin-bottom:18px"></div>
+      <div class="sk" style="aspect-ratio:16/8;border-radius:20px"></div>
+      <div class="detail"><div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div><div class="sk sk-line w80"></div></div><div class="sk" style="height:260px;border-radius:20px"></div></div>
+    </div>
+  </div>
+  <section id="similar-wrap" class="section" style="padding-bottom:0" hidden>
+    <div class="section-head"><h2>عقارات مشابهة</h2><a class="link-more" id="similar-more" href="properties.html">عرض الكل</a></div>
+    <div class="grid" id="similar"></div>
+  </section>
 </div></section></main>
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-  const view = document.getElementById('view'), msg = t => view.innerHTML = `<p class="empty">${t}</p>`;
+  const view = document.getElementById('view');
+  const notFound = (t, sub) => { view.innerHTML = H.empty(t, sub, '<a class="btn btn-navy" href="properties.html">تصفّح العقارات</a>'); document.title = 'غير موجود | حيالة القصيم'; };
+  const setMeta = (sel, attr, val) => { let m = document.head.querySelector(sel); if (m) m.setAttribute(attr, val); };
+
   try {
     const id = H.qs('id');
-    if (!id) return msg('العقار غير موجود');
+    if (!id) { notFound('العقار غير موجود'); return H.hideLoader(); }
     const { data: p, error } = await sb.from('properties').select('*, cities(name)').eq('id', id).maybeSingle();
     if (error && error.code !== '22P02') throw error;
-    if (!p) return msg('العقار غير موجود أو غير متاح حاليًا');
-    document.title = `${p.name} | حيالة القصيم`;
-    const imgs = (p.images && p.images.length) ? p.images : [''];
-    const meta = [['المدينة', p.cities && p.cities.name], ['الحي', p.district], ['النوع', p.type], ['الاتجاه', p.direction], ['الموقع', p.location], ['المسبح', p.has_pool ? 'يوجد' : null], ['السعة', p.capacity && p.capacity + ' أشخاص'], ['الغرف', p.rooms]]
-      .filter(m => m[1]).map(m => `<div><small>${m[0]}</small><strong>${H.esc(m[1])}</strong></div>`).join('');
-    const tiers = [['وسط الأسبوع', p.price_weekday], ['نهاية الأسبوع', p.price_weekend], ['مبيت', p.price_overnight], ['الإجازات', p.price_holiday]]
-      .filter(t => Number(t[1]) > 0).map(t => `<div><span>${t[0]}</span>${H.price(t[1])}</div>`).join('');
+    if (!p) { notFound('العقار غير موجود أو غير متاح حاليًا', 'ربما تم حذفه أو إيقافه مؤقتًا'); return H.hideLoader(); }
+
+    const city = p.cities && p.cities.name;
+    const imgs = (p.images || []).filter(Boolean);
+    const place = [p.district, city].filter(Boolean).join('، ');
+    const desc = (p.description || `${p.type || 'عقار'} في ${place || 'القصيم'}`).slice(0, 160);
+
+    document.title = `${p.name}${city ? ' - ' + city : ''} | حيالة القصيم`;
+    setMeta('meta[name="description"]', 'content', desc);
+    setMeta('meta[property="og:title"]', 'content', document.title);
+    setMeta('meta[property="og:description"]', 'content', desc);
+    if (imgs[0]) setMeta('meta[property="og:image"]', 'content', imgs[0]);
+    const ld = document.createElement('script'); ld.type = 'application/ld+json';
+    ld.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'LodgingBusiness', name: p.name, description: desc, image: imgs, address: { '@type': 'PostalAddress', addressLocality: city, streetAddress: p.district, addressRegion: 'القصيم', addressCountry: 'SA' }, priceRange: p.price ? `${p.price} SAR` : undefined, amenityFeature: (Array.isArray(p.amenities) ? p.amenities : []).map(a => ({ '@type': 'LocationFeatureSpecification', name: a, value: true })) });
+    document.head.appendChild(ld);
+
+    const hl = [['users', 'السعة', p.capacity && `${p.capacity} أشخاص`], ['bed', 'الغرف', p.rooms && `${p.rooms} غرف`], ['pool', 'المسبح', p.has_pool ? 'يوجد' : null], ['home', 'النوع', p.type], ['pin', 'الاتجاه', p.direction]]
+      .filter(h => h[2]).map(([ic, l, v]) => `<div><span class="hi">${H.icon(ic)}</span><span><small>${l}</small><strong>${H.esc(v)}</strong></span></div>`).join('');
+    const tiers = [['وسط الأسبوع', p.price_weekday], ['نهاية الأسبوع', p.price_weekend], ['مبيت', p.price_overnight], ['الإجازات', p.price_holiday]].filter(t => Number(t[1]) > 0);
+    const minPrice = tiers.length ? Math.min(...tiers.map(t => Number(t[1]))) : p.price;
     const am = Array.isArray(p.amenities) ? p.amenities : [];
-    const wa = p.owner_phone ? H.waLink(p.owner_phone, `مرحبًا، أرغب بحجز "${p.name}" عبر حيالة القصيم`) : '';
-    view.innerHTML = `<div class="detail">
-      <div>
-        <div class="gallery-main"><img id="main-img" src="${H.esc(imgs[0])}" alt="${H.esc(p.name)}"></div>
-        ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((s, i) => `<button type="button" class="${i ? '' : 'on'}" data-src="${H.esc(s)}" aria-label="صورة ${i + 1}"><img loading="lazy" src="${H.esc(s)}" alt=""></button>`).join('')}</div>` : ''}
-        ${p.description ? `<div class="block"><h2>الوصف</h2><p class="desc">${H.esc(p.description)}</p></div>` : ''}
-        ${am.length ? `<div class="block"><h2>المميزات</h2><div class="chips">${am.map(a => `<span class="chip">${H.esc(a)}</span>`).join('')}</div></div>` : ''}
-      </div>
-      <aside class="panel">
-        <h1>${H.esc(p.name)}</h1>
-        ${tiers ? `<div class="tiers">${tiers}</div>` : `${H.price(p.price)}<div class="price-note">السعر لليلة الواحدة</div>`}
-        <div class="meta">${meta}</div>
-        <div class="actions-col">
-          ${wa ? `<a class="btn btn-yellow btn-block" href="${wa}" target="_blank" rel="noopener">احجز عبر واتساب</a>` : ''}
-          ${p.owner_phone ? `<a class="btn btn-navy btn-block" href="tel:${H.esc(p.owner_phone)}">اتصل بالمالك</a>` : ''}
+    const wa = p.owner_phone ? H.waLink(p.owner_phone, `مرحبًا، أرغب بحجز "${p.name}" عبر حيالة القصيم\n${location.href}`) : '';
+    const shown = imgs.slice(0, 5);
+    const imgBtn = (s, i, eager) => `<button type="button" data-i="${i}" aria-label="عرض الصورة ${i + 1} من ${imgs.length} بملء الشاشة"><img ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" src="${H.esc(s)}" alt="${i ? '' : H.esc(p.name)}"></button>`;
+
+    view.innerHTML = `
+      <nav class="crumbs" aria-label="مسار التنقل"><a href="index.html">الرئيسية</a>${H.icon('left')}<a href="properties.html">العقارات</a>${city ? `${H.icon('left')}<a href="properties.html?city=${encodeURIComponent(city)}">${H.esc(city)}</a>` : ''}</nav>
+      <div class="ptitle"><div><h1>${H.esc(p.name)}</h1>
+        <div class="sub">${place ? `${H.icon('pin')}<span>${H.esc(place)}</span>` : ''}${p.featured ? `<span class="badge">${H.icon('star')}مميز</span>` : ''}</div></div>
+        <div class="ptitle-acts"><button class="icon-btn" type="button" id="share" aria-label="مشاركة العقار">${H.icon('share')}</button></div></div>
+      ${imgs.length ? `<div class="gal">
+        <div class="gal-track" id="track">${imgs.map((s, i) => imgBtn(s, i, i === 0)).join('')}</div>
+        <div class="gal-grid n${Math.min(shown.length, 5)}">${shown.map((s, i) => imgBtn(s, i, i === 0)).join('')}</div>
+        ${imgs.length > 1 ? `<span class="gal-count" id="gcount">1 / ${imgs.length}</span><button class="gal-all" type="button" data-i="0">${H.icon('grid')}كل الصور (${imgs.length})</button>` : ''}
+      </div>` : ''}
+      <div class="detail">
+        <div>
+          ${hl ? `<div class="highlights">${hl}</div>` : ''}
+          ${p.description ? `<div class="block"><h2>عن المكان</h2><p class="desc clamp" id="desc">${H.esc(p.description)}</p><button class="more-btn" id="desc-more" type="button" hidden>اقرأ المزيد</button></div>` : ''}
+          ${am.length ? `<div class="block"><h2>المميزات والمرافق</h2><div class="chips">${am.map(a => `<span class="chip">${H.icon('check')}${H.esc(a)}</span>`).join('')}</div></div>` : ''}
+          ${p.location ? `<div class="block"><h2>الموقع</h2><p class="desc">${H.icon('pin')} ${H.esc(p.location)}</p></div>` : ''}
         </div>
-      </aside></div>`;
-    view.querySelectorAll('.thumbs button').forEach(b => b.addEventListener('click', () => {
-      document.getElementById('main-img').src = b.dataset.src;
-      view.querySelectorAll('.thumbs button').forEach(x => x.classList.toggle('on', x === b));
-    }));
-  } catch (e) { console.error(e); msg('تعذّر تحميل العقار، حاول مرة أخرى لاحقًا'); }
+        <aside class="panel sticky" aria-label="الحجز">
+          <div class="panel-price">${tiers.length ? '<small>يبدأ من</small>' : ''}${H.price(minPrice)}<small>/ الليلة</small></div>
+          ${tiers.length ? `<div class="tiers">${tiers.map(t => `<div><span>${t[0]}</span>${H.price(t[1])}</div>`).join('')}</div>` : '<div class="price-note">السعر لليلة الواحدة</div>'}
+          <div class="actions-col">
+            ${wa ? `<a class="btn btn-yellow btn-block btn-lg" href="${wa}" target="_blank" rel="noopener">${H.icon('wa')}احجز عبر واتساب</a>` : ''}
+            ${p.owner_phone ? `<a class="btn btn-line btn-block" href="tel:${H.esc(p.owner_phone)}">${H.icon('phone')}اتصل بالمالك</a>` : ''}
+          </div>
+          <p class="trust">${H.icon('check')}تواصل مباشر مع المالك</p>
+        </aside>
+      </div>
+      ${wa ? `<div class="bookbar"><div class="bb-price"><small>${tiers.length ? 'يبدأ من' : 'لليلة'}</small>${H.price(minPrice)}</div><a class="btn btn-yellow" href="${wa}" target="_blank" rel="noopener">${H.icon('wa')}احجز الآن</a></div>` : ''}`;
+    if (wa) document.body.classList.add('has-bookbar');
+
+    const d = document.getElementById('desc');
+    if (d && d.scrollHeight > d.clientHeight + 4) {
+      const b = document.getElementById('desc-more'); b.hidden = false;
+      b.onclick = () => { const c = d.classList.toggle('clamp'); b.textContent = c ? 'اقرأ المزيد' : 'عرض أقل'; };
+    }
+
+    const track = document.getElementById('track'), gc = document.getElementById('gcount');
+    if (track && gc) track.addEventListener('scroll', () => { gc.textContent = `${Math.round(Math.abs(track.scrollLeft) / track.clientWidth) + 1} / ${imgs.length}`; }, { passive: true });
+    view.querySelectorAll('.gal [data-i]').forEach(b => b.addEventListener('click', () => openLB(+b.dataset.i)));
+
+    document.getElementById('share').addEventListener('click', async () => {
+      const data = { title: p.name, text: `${p.name} - حيالة القصيم`, url: location.href };
+      try {
+        if (navigator.share) await navigator.share(data);
+        else { await navigator.clipboard.writeText(location.href); H.toast('تم نسخ رابط العقار', 'ok'); }
+      } catch (e) { if (e.name !== 'AbortError') H.toast('تعذّرت المشاركة'); }
+    });
+
+    // معرض الصور بملء الشاشة
+    let lb, lbTrack, cur = 0, opener;
+    function buildLB() {
+      document.body.insertAdjacentHTML('beforeend', `<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="معرض صور ${H.esc(p.name)}">
+        <div class="lb-top"><span class="lb-count" id="lb-count"></span><button class="icon-btn" type="button" id="lb-close" aria-label="إغلاق المعرض">${H.icon('x')}</button></div>
+        <div class="lb-track" id="lb-track">${imgs.map((s, i) => `<div class="lb-slide"><img loading="lazy" src="${H.esc(s)}" alt="صورة ${i + 1} من ${imgs.length}"></div>`).join('')}</div>
+        ${imgs.length > 1 ? `<button class="icon-btn lb-nav lb-prev" type="button" aria-label="الصورة السابقة">${H.icon('right')}</button><button class="icon-btn lb-nav lb-next" type="button" aria-label="الصورة التالية">${H.icon('left')}</button>
+        <div class="lb-thumbs" id="lb-thumbs">${imgs.map((s, i) => `<button type="button" data-i="${i}" aria-label="صورة ${i + 1}"><img loading="lazy" src="${H.esc(s)}" alt=""></button>`).join('')}</div>` : ''}
+      </div>`);
+      lb = document.getElementById('lb'); lbTrack = document.getElementById('lb-track');
+      document.getElementById('lb-close').onclick = closeLB;
+      lb.querySelector('.lb-prev')?.addEventListener('click', () => go(cur - 1));
+      lb.querySelector('.lb-next')?.addEventListener('click', () => go(cur + 1));
+      lb.querySelectorAll('.lb-thumbs button').forEach(b => b.onclick = () => go(+b.dataset.i));
+      lbTrack.addEventListener('scroll', H.debounce(() => mark(Math.round(Math.abs(lbTrack.scrollLeft) / lbTrack.clientWidth)), 60), { passive: true });
+      lb.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeLB();
+        else if (e.key === 'ArrowLeft') go(cur + 1);
+        else if (e.key === 'ArrowRight') go(cur - 1);
+      });
+    }
+    function mark(i) {
+      cur = i;
+      document.getElementById('lb-count').textContent = `${i + 1} / ${imgs.length}`;
+      lb.querySelectorAll('.lb-thumbs button').forEach((b, j) => { b.classList.toggle('on', j === i); if (j === i) b.scrollIntoView({ block: 'nearest', inline: 'center' }); });
+    }
+    function go(i, instant) {
+      i = (i + imgs.length) % imgs.length;
+      const slide = lbTrack.children[i];
+      lbTrack.scrollTo({ left: slide.offsetLeft - lbTrack.offsetLeft, behavior: instant ? 'instant' : 'smooth' });
+      mark(i);
+    }
+    function openLB(i) {
+      if (!lb) buildLB();
+      opener = document.activeElement;
+      lb.classList.add('open'); document.body.classList.add('lb-open');
+      requestAnimationFrame(() => go(i, true));
+      document.getElementById('lb-close').focus();
+    }
+    function closeLB() { lb.classList.remove('open'); document.body.classList.remove('lb-open'); opener && opener.focus(); }
+
+    // عقارات مشابهة
+    let sq = sb.from('properties').select('*, cities(name)').neq('id', p.id).limit(4);
+    sq = p.city_id ? sq.eq('city_id', p.city_id) : sq.order('created_at', { ascending: false });
+    sq.then(({ data }) => {
+      if (!data || !data.length) return;
+      document.getElementById('similar').innerHTML = data.map(H.card).join('');
+      if (city) document.getElementById('similar-more').href = `properties.html?city=${encodeURIComponent(city)}`;
+      document.getElementById('similar-wrap').hidden = false;
+    });
+  } catch (e) {
+    console.error(e);
+    view.innerHTML = H.empty('تعذّر تحميل العقار', 'تحقّق من اتصالك وحاول مرة أخرى', '<button class="btn btn-navy" onclick="location.reload()">إعادة المحاولة</button>');
+  }
   H.hideLoader();
 });
 </script>
