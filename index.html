@@ -3,270 +3,63 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title>لوحة التحكم | حيالة القصيم</title>
-<link rel="icon" href="../assets/logo.png">
-<link rel="stylesheet" href="../assets/style.css">
-<style>
-  .mg{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
-  .mu{display:flex;align-items:center;gap:12px;width:100%;flex-wrap:wrap}
-  .mu .ms{font-size:14px;color:#64748b}
-  .mc{width:160px;border:1px solid #d9e2ec;border-radius:10px;overflow:hidden;background:#fff;position:relative}
-  .mc img{width:100%;height:115px;object-fit:cover;display:block;background:#eef2f6}
-  .mb{position:absolute;top:6px;inset-inline-start:6px;background:#fbbf24;color:#0f3d6e;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px}
-  .mt{display:flex;flex-wrap:wrap;gap:4px;padding:6px}
-  .mt button{flex:1 1 auto;font:inherit;font-size:12px;padding:5px 6px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;cursor:pointer}
-  .mt button.d{color:#b91c1c;border-color:#fca5a5}
-  .mh{font-size:13px;color:#64748b;width:100%;margin:0}
-</style>
+<title>حيالة القصيم | شاليهات واستراحات في القصيم</title>
+<meta name="description" content="منصة حجز شاليهات واستراحات ومنتجعات في القصيم: بريدة، عنيزة، البكيرية وغيرها. تصفّح العروض واحجز عبر واتساب.">
+<meta name="theme-color" content="#14487F">
+<link rel="icon" href="assets/logo.png">
+<meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
+<meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="حيالة القصيم | شاليهات واستراحات في القصيم">
+<meta property="og:description" content="منصة حجز شاليهات واستراحات ومنتجعات في القصيم: بريدة، عنيزة، البكيرية وغيرها. تصفّح العروض واحجز عبر واتساب."><meta property="og:image" content="assets/logo.png">
+<link rel="stylesheet" href="assets/style.css">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
-<script defer src="../assets/supabase.js"></script>
-<script defer src="../assets/app.js"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
 </head>
 <body data-hold>
-<main id="main"><section class="section"><div class="container">
-  <h1 class="page-title">لوحة التحكم</h1>
-  <div id="login" style="max-width:420px" hidden>
-    <div class="field"><label for="em">البريد الإلكتروني</label><input id="em" type="email" dir="ltr" autocomplete="username"></div>
-    <div class="field"><label for="pw">كلمة المرور</label><input id="pw" type="password" dir="ltr" autocomplete="current-password"><span class="err" id="lerr"></span></div>
-    <button class="btn btn-navy btn-block" id="go">تسجيل الدخول</button>
-  </div>
-  <div id="app" hidden>
-    <div class="adm-bar"><div class="adm-tabs" id="tabs"></div><button class="btn btn-line btn-sm" id="out">تسجيل الخروج</button></div>
-    <div id="list"></div>
-    <div id="fm" hidden></div>
-  </div>
-</div></section></main>
+<main id="main">
+  <section class="section"><div class="container">
+    <div class="owner-banner" style="background-image:url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1000&h=500&fit=crop&q=80')">
+      <div class="in">
+        <h2>لديك عقار؟ سجّل عقارك</h2>
+        <p>سجّل عقارك في حيالة القصيم وابدأ باستقبال الحجوزات بكل سهولة</p>
+        <a class="btn btn-yellow" href="subscription.html">اشترك الآن</a>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="section"><div class="container">
+    <div class="section-head"><h2>المدن</h2></div>
+    <div class="cities" id="cities"></div>
+  </div></section>
+
+  <section class="section"><div class="container">
+    <div class="section-head"><h2>العروض المميزة</h2><a class="link-more" href="properties.html?featured=1">عرض الكل</a></div>
+    <div class="grid" id="featured"></div>
+  </div></section>
+
+  <section class="section"><div class="container">
+    <div class="section-head"><h2>أحدث العقارات</h2><a class="link-more" href="properties.html">عرض الكل</a></div>
+    <div class="grid" id="latest"></div>
+  </div></section>
+</main>
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-  const $ = id => document.getElementById(id), E = H.esc;
-  const ST = { pending: 'قيد المراجعة', approved: 'معتمد', rejected: 'مرفوض' };
-  const dt = v => v ? new Date(v).toLocaleDateString('ar-SA') : '';
-  const yn = v => v ? 'نعم' : 'لا';
-  const TYPES = ['شاليه', 'استراحة', 'منتجع', 'شقة'];
-  const BUCKET = 'property-images';
-  let cities = [], cur = 'subscriptions', rows = [];
-  let media = {}, mOrig = {}, mUp = [], mFolder = '', busy = 0; // حالة الصور داخل النموذج المفتوح (الحالية / الأصلية / المرفوعة في هذه الجلسة)
-  // حقول النموذج: [مفتاح, عنوان, نوع(t نص/n رقم/a نص طويل/l أسطر/c اختيار/s قائمة/p صور متعددة/i صورة واحدة), إلزامي, خيارات]
-  const ENT = {
-    subscriptions: { t: 'طلبات الاشتراك', sel: '*, packages(name)', status: true, mk: true,
-      cols: [['owner_name', 'المالك'], ['phone', 'الجوال'], ['property_name', 'العقار'], ['city', 'المدينة'], ['packages', 'الباقة', v => v && v.name], ['payment_method', 'الدفع'], ['status', 'الحالة', v => ST[v] || v], ['created_at', 'التاريخ', dt]] },
-    properties: { t: 'العقارات', sel: '*, cities(name)', status: true, star: true, add: true,
-      cols: [['name', 'الاسم'], ['cities', 'المدينة', v => v && v.name], ['price', 'السعر'], ['status', 'الحالة', v => ST[v] || v], ['featured', 'مميز', yn]],
-      form: [['name', 'اسم العقار', 't', 1], ['owner_name', 'اسم المالك', 't'], ['owner_phone', 'جوال المالك', 't'], ['city_id', 'المدينة', 's', 0, 'cities'], ['district', 'الحي', 't'], ['location', 'الموقع / المنطقة', 't'], ['direction', 'الاتجاه', 's', 0, ['شمال', 'جنوب', 'شرق', 'غرب']], ['type', 'النوع', 's', 0, TYPES], ['price_weekday', 'سعر وسط الأسبوع', 'n'], ['price_weekend', 'سعر نهاية الأسبوع', 'n'], ['price_overnight', 'سعر المبيت', 'n'], ['price_holiday', 'سعر الإجازات', 'n'], ['capacity', 'السعة', 'n'], ['rooms', 'الغرف', 'n'], ['status', 'الحالة', 's', 1, ['pending', 'approved', 'rejected']], ['featured', 'عقار مميز', 'c'], ['has_pool', 'يوجد مسبح', 'c'], ['amenities', 'المميزات (كل سطر ميزة)', 'l'], ['images', 'صور العقار', 'p'], ['description', 'الوصف', 'a']] },
-    cities: { t: 'المدن', add: true, order: 'sort', asc: true,
-      cols: [['name', 'المدينة'], ['sort', 'الترتيب']],
-      form: [['name', 'اسم المدينة', 't', 1], ['sort', 'الترتيب', 'n'], ['image', 'صورة المدينة', 'i']] },
-    packages: { t: 'الباقات', add: true, order: 'sort', asc: true,
-      cols: [['name', 'الباقة'], ['price', 'السعر'], ['period', 'المدة'], ['active', 'فعّالة', yn]],
-      form: [['name', 'اسم الباقة', 't', 1], ['price', 'السعر', 'n', 1], ['period', 'المدة', 't'], ['features', 'المميزات (كل سطر ميزة)', 'l'], ['sort', 'الترتيب', 'n'], ['active', 'فعّالة', 'c']] },
-    posts: { t: 'المقالات', add: true,
-      cols: [['title', 'العنوان'], ['slug', 'الرابط'], ['published', 'منشور', yn], ['created_at', 'التاريخ', dt]],
-      form: [['title', 'العنوان', 't', 1], ['slug', 'الرابط (إنجليزي بدون مسافات)', 't', 1], ['excerpt', 'مقتطف', 't'], ['cover', 'صورة الغلاف', 'i'], ['body', 'النص (سطر فاضي بين الفقرات)', 'a'], ['published', 'منشور', 'c']] },
-    suggestions: { t: 'الاقتراحات', cols: [['name', 'الاسم'], ['phone', 'الجوال'], ['message', 'الاقتراح'], ['created_at', 'التاريخ', dt]] }
-  };
-  const msg = (el, t) => { el.innerHTML = `<p class="empty">${t}</p>`; };
-
-  // ===== الصور: تصغير تلقائي ثم رفع =====
-  async function shrink(file) {
-    const bmp = await createImageBitmap(file);
-    const max = 1600, s = Math.min(1, max / Math.max(bmp.width, bmp.height));
-    const c = document.createElement('canvas');
-    c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
-    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
-    g.drawImage(bmp, 0, 0, c.width, c.height);
-    if (bmp.close) bmp.close();
-    return await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('تعذّر تجهيز الصورة')), 'image/jpeg', 0.85));
+  const $ = id => document.getElementById(id);
+  const fill = (id, rows, render, msg) => { $(id).innerHTML = rows && rows.length ? rows.map(render).join('') : `<p class="empty" style="grid-column:1/-1">${msg}</p>`; };
+  try {
+    const [c, f, l] = await Promise.all([
+      sb.from('cities_with_count').select('*').order('sort'),
+      sb.from('properties').select('*').eq('featured', true).order('created_at', { ascending: false }).limit(8),
+      sb.from('properties').select('*').order('created_at', { ascending: false }).limit(12)
+    ]);
+    if (c.error || f.error || l.error) throw (c.error || f.error || l.error);
+    fill('cities', c.data, x => `<a class="city-card" href="properties.html?city=${encodeURIComponent(x.name)}"><strong>${H.esc(x.name)}</strong><span>${x.properties_count} عقار</span></a>`, 'لا توجد مدن حاليًا');
+    fill('featured', f.data, H.card, 'لا توجد عروض مميزة حاليًا');
+    fill('latest', l.data, H.card, 'لا توجد عقارات حاليًا');
+  } catch (e) {
+    console.error(e);
+    ['cities', 'featured', 'latest'].forEach(id => $(id).innerHTML = '<p class="empty" style="grid-column:1/-1">تعذّر تحميل البيانات، حاول مرة أخرى لاحقًا</p>');
   }
-  async function uploadImg(file) {
-    const blob = await shrink(file);
-    const path = `${mFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-    const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
-    if (error) throw error;
-    return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-  }
-  // حذف الملفات من التخزين (روابط مجلدنا فقط، وأي رابط خارجي يتم تجاهله)
-  function purge(urls) {
-    const re = new RegExp('/storage/v1/object/public/' + BUCKET + '/(.+)$');
-    const paths = [...new Set(urls)].map(u => { const m = re.exec(u || ''); return m ? decodeURIComponent(m[1]) : null; }).filter(Boolean);
-    if (!paths.length) return;
-    sb.storage.from(BUCKET).remove(paths).then(({ error }) => { if (error) console.error(error); });
-  }
-  function discard() { if (mUp.length) purge(mUp); mUp = []; } // صور اتر فعت ولم تُحفظ
-  function renderMedia(k) {
-    const box = $('m-' + k), t = box.dataset.t, v = media[k];
-    const multi = t === 'p', list = multi ? v : (v ? [v] : []);
-    const cards = list.map((u, i) => `<div class="mc"><img src="${E(u)}" alt="">
-      ${multi && i === 0 ? '<span class="mb">الغلاف</span>' : ''}
-      <div class="mt">
-        ${multi && i > 0 ? `<button type="button" data-m="cover" data-i="${i}">جعلها الغلاف</button>` : ''}
-        ${multi && i > 0 ? `<button type="button" data-m="up" data-i="${i}">تقديم</button>` : ''}
-        ${multi && i < list.length - 1 ? `<button type="button" data-m="down" data-i="${i}">تأخير</button>` : ''}
-        <button type="button" class="d" data-m="del" data-i="${i}">حذف</button>
-      </div></div>`).join('');
-    box.innerHTML = `<div class="mu">
-        <label class="btn btn-yellow btn-sm" style="cursor:pointer">${multi ? 'رفع صور من جهازك' : (v ? 'تغيير الصورة' : 'رفع صورة من جهازك')}<input type="file" accept="image/*" ${multi ? 'multiple' : ''} hidden></label>
-        <span class="ms" id="s-${k}"></span>
-      </div>
-      ${multi && list.length ? '<p class="mh">أول صورة هي الغلاف الذي يظهر في القوائم. استخدم الأزرار لترتيب الصور.</p>' : ''}
-      ${cards}`;
-  }
-  async function onMediaChange(k, input) {
-    const files = [...input.files]; if (!files.length) return;
-    const t = $('m-' + k).dataset.t, st = $('s-' + k);
-    busy++; let ok = 0;
-    for (let n = 0; n < files.length; n++) {
-      st.textContent = `جاري رفع الصورة ${n + 1} من ${files.length}...`;
-      try {
-        const url = await uploadImg(files[n]);
-        mUp.push(url);
-        if (t === 'p') media[k].push(url); else media[k] = url;
-        ok++;
-      } catch (e) { console.error(e); H.toast('تعذّر رفع صورة: ' + (e.message || '')); }
-    }
-    busy--; renderMedia(k);
-    if (ok) H.toast(ok > 1 ? `تم رفع ${ok} صور` : 'تم رفع الصورة');
-  }
-  function onMediaClick(k, b) {
-    const a = b.dataset.m, i = +b.dataset.i, t = $('m-' + k).dataset.t;
-    if (t === 'i') { media[k] = ''; return renderMedia(k); }
-    const arr = media[k];
-    if (a === 'del') arr.splice(i, 1);
-    else if (a === 'cover') arr.unshift(arr.splice(i, 1)[0]);
-    else if (a === 'up' && i > 0) [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
-    else if (a === 'down' && i < arr.length - 1) [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]];
-    renderMedia(k);
-  }
-
-  async function enter() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { $('app').hidden = true; $('login').hidden = false; return; }
-    const { data: a } = await sb.from('admins').select('user_id').maybeSingle();
-    $('login').hidden = !!a;
-    if (!a) { $('lerr').textContent = 'هذا الحساب ليس أدمن. أضفه لجدول admins ثم أعد الدخول.'; await sb.auth.signOut(); $('login').hidden = false; return; }
-    $('app').hidden = false;
-    const c = await sb.from('cities').select('id,name').order('sort'); cities = c.data || [];
-    $('tabs').innerHTML = Object.keys(ENT).map(k => `<button data-k="${k}">${ENT[k].t}</button>`).join('');
-    show(cur);
-  }
-  function show(k) {
-    discard();
-    cur = k; $('fm').hidden = true; $('list').hidden = false;
-    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
-    load();
-  }
-  async function load() {
-    const e = ENT[cur]; msg($('list'), 'جاري التحميل...');
-    const { data, error } = await sb.from(cur).select(e.sel || '*').order(e.order || 'created_at', { ascending: !!e.asc });
-    if (error) { console.error(error); return msg($('list'), 'تعذّر التحميل'); }
-    rows = data || [];
-    const btn = (a, i, t, c) => `<button class="btn ${c || 'btn-line'} btn-sm" data-a="${a}" data-i="${i}">${t}</button>`;
-    const th = e.cols.map(c => `<th>${c[1]}</th>`).join('') + '<th></th>';
-    const tr = rows.map((r, i) => `<tr>${e.cols.map(c => `<td>${E(c[2] ? c[2](r[c[0]], r) : r[c[0]])}</td>`).join('')}<td class="acts">
-      ${e.status && r.status !== 'approved' ? btn('ok', i, 'اعتماد', 'btn-navy') : ''}${e.status && r.status !== 'rejected' ? btn('no', i, 'رفض') : ''}
-      ${e.star ? btn('star', i, r.featured ? 'إلغاء التمييز' : 'تمييز') : ''}${e.mk ? btn('mk', i, 'إنشاء عقار') : ''}
-      ${e.form ? btn('edit', i, 'تعديل') : ''}${btn('del', i, 'حذف')}</td></tr>`).join('');
-    $('list').innerHTML = `${e.add ? `<p><button class="btn btn-yellow btn-sm" data-a="new">إضافة جديد</button></p>` : ''}
-      <p class="result-count">${rows.length} سجل</p>
-      ${rows.length ? `<div class="tbl-wrap"><table class="adm"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>` : '<p class="empty">لا توجد بيانات</p>'}`;
-  }
-  async function upd(id, patch) {
-    const { error } = await sb.from(cur).update(patch).eq('id', id);
-    if (error) { console.error(error); return H.toast('تعذّر التنفيذ'); }
-    H.toast('تم'); load();
-  }
-  function form(row, fields, table) {
-    const v = row || {};
-    media = {}; mOrig = {}; mUp = []; mFolder = table; busy = 0;
-    $('fm').innerHTML = `<div class="form-grid">${fields.map(([k, l, t, req, o]) => {
-      let x = v[k];
-      if (t === 'l') x = Array.isArray(x) ? x.join('\n') : '';
-      if (t === 'p' || t === 'i') {
-        media[k] = t === 'p' ? (Array.isArray(x) ? x.slice() : []) : (x || '');
-        mOrig[k] = t === 'p' ? media[k].slice() : media[k];
-        return `<div class="field full"><label>${l}${req ? ' *' : ''}</label><div class="mg" id="m-${k}" data-t="${t}"></div></div>`;
-      }
-      const lab = `<label for="f-${k}">${l}${req ? ' *' : ''}</label>`;
-      let inp;
-      if (t === 'a') inp = `<textarea id="f-${k}" rows="6">${E(x)}</textarea>`;
-      else if (t === 'l') inp = `<textarea id="f-${k}" rows="4" dir="ltr">${E(x)}</textarea>`;
-      else if (t === 'c') return `<div class="field"><label><input type="checkbox" id="f-${k}" ${x ? 'checked' : ''}> ${l}</label></div>`;
-      else if (t === 's') { const opts = o === 'cities' ? cities.map(c => [c.id, c.name]) : o.map(s => [s, ST[s] || s]); inp = `<select id="f-${k}"><option value="">-</option>${opts.map(([a, b]) => `<option value="${E(a)}" ${a === x ? 'selected' : ''}>${E(b)}</option>`).join('')}</select>`; }
-      else inp = `<input id="f-${k}" type="${t === 'n' ? 'number' : 'text'}" value="${E(x)}" ${t === 'n' ? 'step="any"' : ''}>`;
-      return `<div class="field${t === 'a' || t === 'l' ? ' full' : ''}">${lab}${inp}</div>`;
-    }).join('')}</div>
-    <div class="nav-btns"><button class="btn btn-line" id="fc">إلغاء</button><button class="btn btn-yellow" id="fs" style="margin-inline-start:auto">حفظ</button></div>`;
-    $('list').hidden = true; $('fm').hidden = false; window.scrollTo({ top: 0 });
-    for (const [k, , t] of fields) {
-      if (t !== 'p' && t !== 'i') continue;
-      renderMedia(k);
-      const box = $('m-' + k);
-      box.addEventListener('change', e => { if (e.target.type === 'file') { onMediaChange(k, e.target).then(() => { e.target.value = ''; }); } });
-      box.addEventListener('click', e => { const b = e.target.closest('button[data-m]'); if (b) onMediaClick(k, b); });
-    }
-    $('fc').onclick = () => show(cur);
-    $('fs').onclick = async () => {
-      if (busy) return H.toast('انتظر حتى ينتهي رفع الصور');
-      const o = {};
-      for (const [k, l, t, req] of fields) {
-        if (t === 'p' || t === 'i') {
-          const mv = media[k];
-          if (req && !(t === 'p' ? mv.length : mv)) return H.toast(`${l} مطلوب`);
-          o[k] = t === 'p' ? mv : (mv || null);
-          continue;
-        }
-        const el = $('f-' + k), s = t === 'c' ? el.checked : el.value.trim();
-        if (req && !s) return H.toast(`${l} مطلوب`);
-        o[k] = t === 'c' ? s : t === 'n' ? (s === '' ? null : Number(s)) : t === 'l' ? s.split('\n').map(z => z.trim()).filter(Boolean) : (s || null);
-      }
-      if (table === 'properties') { // price = أقل سعر موجب (يظهر في البطاقات والفلترة)
-        const t = ['price_weekday', 'price_weekend', 'price_overnight', 'price_holiday'].map(k => o[k]).filter(x => x > 0);
-        if (!t.length) return H.toast('أدخل سعرًا واحدًا على الأقل');
-        o.price = Math.min(...t);
-      }
-      $('fs').disabled = true;
-      const q = row && row.id ? sb.from(table).update(o).eq('id', row.id) : sb.from(table).insert(o);
-      const { error } = await q;
-      if (error) { console.error(error); $('fs').disabled = false; return H.toast('تعذّر الحفظ: ' + (error.message || '')); }
-      H.toast('تم الحفظ');
-      const keep = new Set();
-      fields.forEach(([k, , t]) => { if (t === 'p') media[k].forEach(u => keep.add(u)); else if (t === 'i' && media[k]) keep.add(media[k]); });
-      const old = []; Object.values(mOrig).forEach(v => (Array.isArray(v) ? v : [v]).forEach(u => { if (u) old.push(u); }));
-      purge([...old, ...mUp].filter(u => !keep.has(u)));
-      mUp = []; show(cur);
-    };
-  }
-
-  $('go').onclick = async () => {
-    $('lerr').textContent = '';
-    const { error } = await sb.auth.signInWithPassword({ email: $('em').value.trim(), password: $('pw').value });
-    if (error) { $('lerr').textContent = 'بيانات الدخول غير صحيحة'; return; }
-    $('pw').value = ''; enter();
-  };
-  $('out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
-  $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.k); });
-  $('list').addEventListener('click', async e => {
-    const b = e.target.closest('button[data-a]'); if (!b) return;
-    const r = rows[b.dataset.i], a = b.dataset.a, E2 = ENT[cur];
-    if (a === 'new') return form(null, E2.form, cur);
-    if (a === 'edit') return form(r, E2.form, cur);
-    if (a === 'ok' || a === 'no') return upd(r.id, { status: a === 'ok' ? 'approved' : 'rejected' });
-    if (a === 'star') return upd(r.id, { featured: !r.featured });
-    if (a === 'del') {
-      if (confirm('تأكيد الحذف نهائيًا؟')) {
-        const urls = []; (E2.form || []).forEach(([k, , t]) => { if (t === 'p') (r[k] || []).forEach(u => urls.push(u)); else if (t === 'i' && r[k]) urls.push(r[k]); });
-        const { error } = await sb.from(cur).delete().eq('id', r.id);
-        if (error) H.toast('تعذّر الحذف'); else { H.toast('تم الحذف'); purge(urls); load(); }
-      }
-      return;
-    }
-    if (a === 'mk') { // إنشاء عقار من طلب اشتراك
-      const d = r.details || {}, c = cities.find(x => x.name === r.city);
-      cur = 'properties'; document.querySelectorAll('#tabs button').forEach(t => t.classList.toggle('on', t.dataset.k === cur));
-      form({ owner_name: r.owner_name, owner_phone: r.phone, name: r.property_name, city_id: c && c.id, district: d.district, type: d.type, price_weekday: d.price, price_weekend: d.price, capacity: d.capacity, rooms: d.rooms, description: d.notes, status: 'pending' }, ENT.properties.form, 'properties');
-    }
-  });
-  try { await enter(); } catch (e) { console.error(e); $('login').hidden = false; }
   H.hideLoader();
 });
 </script>
