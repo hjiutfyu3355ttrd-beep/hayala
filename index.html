@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const TYPES = ['شاليه', 'استراحة', 'منتجع', 'شقة'];
   const BUCKET = 'property-images';
   let cities = [], cur = 'subscriptions', rows = [];
-  let media = {}, mFolder = '', busy = 0; // حالة الصور داخل النموذج المفتوح
+  let media = {}, mOrig = {}, mUp = [], mFolder = '', busy = 0; // حالة الصور داخل النموذج المفتوح (الحالية / الأصلية / المرفوعة في هذه الجلسة)
   // حقول النموذج: [مفتاح, عنوان, نوع(t نص/n رقم/a نص طويل/l أسطر/c اختيار/s قائمة/p صور متعددة/i صورة واحدة), إلزامي, خيارات]
   const ENT = {
     subscriptions: { t: 'طلبات الاشتراك', sel: '*, packages(name)', status: true, mk: true,
@@ -85,6 +85,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (error) throw error;
     return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   }
+  // حذف الملفات من التخزين (روابط مجلدنا فقط، وأي رابط خارجي يتم تجاهله)
+  function purge(urls) {
+    const re = new RegExp('/storage/v1/object/public/' + BUCKET + '/(.+)$');
+    const paths = [...new Set(urls)].map(u => { const m = re.exec(u || ''); return m ? decodeURIComponent(m[1]) : null; }).filter(Boolean);
+    if (!paths.length) return;
+    sb.storage.from(BUCKET).remove(paths).then(({ error }) => { if (error) console.error(error); });
+  }
+  function discard() { if (mUp.length) purge(mUp); mUp = []; } // صور اتر فعت ولم تُحفظ
   function renderMedia(k) {
     const box = $('m-' + k), t = box.dataset.t, v = media[k];
     const multi = t === 'p', list = multi ? v : (v ? [v] : []);
@@ -111,6 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       st.textContent = `جاري رفع الصورة ${n + 1} من ${files.length}...`;
       try {
         const url = await uploadImg(files[n]);
+        mUp.push(url);
         if (t === 'p') media[k].push(url); else media[k] = url;
         ok++;
       } catch (e) { console.error(e); H.toast('تعذّر رفع صورة: ' + (e.message || '')); }
@@ -141,6 +150,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     show(cur);
   }
   function show(k) {
+    discard();
     cur = k; $('fm').hidden = true; $('list').hidden = false;
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
     load();
@@ -167,12 +177,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   function form(row, fields, table) {
     const v = row || {};
-    media = {}; mFolder = table; busy = 0;
+    media = {}; mOrig = {}; mUp = []; mFolder = table; busy = 0;
     $('fm').innerHTML = `<div class="form-grid">${fields.map(([k, l, t, req, o]) => {
       let x = v[k];
       if (t === 'l') x = Array.isArray(x) ? x.join('\n') : '';
       if (t === 'p' || t === 'i') {
         media[k] = t === 'p' ? (Array.isArray(x) ? x.slice() : []) : (x || '');
+        mOrig[k] = t === 'p' ? media[k].slice() : media[k];
         return `<div class="field full"><label>${l}${req ? ' *' : ''}</label><div class="mg" id="m-${k}" data-t="${t}"></div></div>`;
       }
       const lab = `<label for="f-${k}">${l}${req ? ' *' : ''}</label>`;
@@ -217,7 +228,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       const q = row && row.id ? sb.from(table).update(o).eq('id', row.id) : sb.from(table).insert(o);
       const { error } = await q;
       if (error) { console.error(error); $('fs').disabled = false; return H.toast('تعذّر الحفظ: ' + (error.message || '')); }
-      H.toast('تم الحفظ'); show(cur);
+      H.toast('تم الحفظ');
+      const keep = new Set();
+      fields.forEach(([k, , t]) => { if (t === 'p') media[k].forEach(u => keep.add(u)); else if (t === 'i' && media[k]) keep.add(media[k]); });
+      const old = []; Object.values(mOrig).forEach(v => (Array.isArray(v) ? v : [v]).forEach(u => { if (u) old.push(u); }));
+      purge([...old, ...mUp].filter(u => !keep.has(u)));
+      mUp = []; show(cur);
     };
   }
 
@@ -236,7 +252,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (a === 'edit') return form(r, E2.form, cur);
     if (a === 'ok' || a === 'no') return upd(r.id, { status: a === 'ok' ? 'approved' : 'rejected' });
     if (a === 'star') return upd(r.id, { featured: !r.featured });
-    if (a === 'del') { if (confirm('تأكيد الحذف نهائيًا؟')) { const { error } = await sb.from(cur).delete().eq('id', r.id); if (error) H.toast('تعذّر الحذف'); else { H.toast('تم الحذف'); load(); } } return; }
+    if (a === 'del') {
+      if (confirm('تأكيد الحذف نهائيًا؟')) {
+        const urls = []; (E2.form || []).forEach(([k, , t]) => { if (t === 'p') (r[k] || []).forEach(u => urls.push(u)); else if (t === 'i' && r[k]) urls.push(r[k]); });
+        const { error } = await sb.from(cur).delete().eq('id', r.id);
+        if (error) H.toast('تعذّر الحذف'); else { H.toast('تم الحذف'); purge(urls); load(); }
+      }
+      return;
+    }
     if (a === 'mk') { // إنشاء عقار من طلب اشتراك
       const d = r.details || {}, c = cities.find(x => x.name === r.city);
       cur = 'properties'; document.querySelectorAll('#tabs button').forEach(t => t.classList.toggle('on', t.dataset.k === cur));
