@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>معرض الصور | حيالة القصيم</title>
+<meta name="description" content="صور من منتجع حيالة القصيم: الشاليهات والمزرعة والمسبح.">
+<meta name="theme-color" content="#14487F">
+<link rel="icon" href="assets/logo.png">
+<link rel="preconnect" href="https://onktlkgabkjlxnhumoez.supabase.co" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main"><section class="section" style="padding-top:20px"><div class="container">
+  <nav class="crumbs" aria-label="مسار التنقل"><a href="index.html">الرئيسية</a><span id="cr"></span>معرض الصور</nav>
+  <div class="section-head"><div><h1 style="font-size:clamp(1.4rem,3.5vw,2rem);color:var(--navy);font-weight:800">معرض الصور</h1><p>لقطات من المنتجع</p></div></div>
+  <div class="grid" id="grid"></div>
+</div></section></main>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const g = document.getElementById('grid');
+  document.getElementById('cr').innerHTML = H.icon('left');
+  g.innerHTML = H.skeleton(8);
+  try {
+    const { data, error } = await sb.from('gallery_photos').select('*, units(slug)').order('sort').order('created_at', { ascending: false }).limit(60);
+    if (error) throw error;
+    g.innerHTML = data.length ? data.map(H.photoCard).join('') : H.photoCard(null, 0).repeat(8);
+  } catch (e) {
+    console.error(e);
+    g.innerHTML = H.empty('تعذّر تحميل الصور', 'تحقّق من اتصالك وحاول مرة أخرى', '<button class="btn btn-navy" onclick="location.reload()">إعادة المحاولة</button>');
+  }
+  H.hideLoader();
+});
+</script>
+</body>
+</html>

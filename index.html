@@ -23,49 +23,89 @@
   <section class="hero">
     <div class="hero-bg"><img src="assets/hero.webp" alt="" fetchpriority="high"></div>
     <div class="container">
-      <span class="hero-eyebrow" id="eyebrow">مبيت أو بدون مبيت</span>
-      <h1>إجازتك في <em>حيالة القصيم</em> بين النخيل والمسبح</h1>
-      <p class="lead">شاليهات ومزرعة للإيجار. اختر وحدتك، أرسل طلب الحجز، ونؤكده معك على واتساب.</p>
-      <div class="hero-cta">
-        <a class="btn btn-yellow btn-lg" href="#units">تصفّح الوحدات</a>
-        <a class="btn btn-line btn-lg" id="hero-wa" href="#how" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.5)">كيف أحجز؟</a>
-      </div>
+      <span class="hero-eyebrow" id="eyebrow">شاليهات ومزرعة في القصيم</span>
+      <h1>إجازتك المثالية في <em>حيالة القصيم</em> على بُعد ضغطة</h1>
+      <p class="lead">شاليهات ومزرعة للإيجار، مبيت أو بدون مبيت. اختر وحدتك وأرسل طلب الحجز ونؤكده معك.</p>
+      <form class="search-box" id="hero-search" action="unit.html" role="search" aria-label="تحقق من التوفر">
+        <label class="sf" for="h-unit"><span>الوحدة</span><select id="h-unit" name="u"><option value="">اختر الوحدة</option></select></label>
+        <label class="sf" for="h-st"><span>نوع الإقامة</span><select id="h-st" name="st"><option value="overnight">مبيت</option><option value="day_use">بدون مبيت</option></select></label>
+        <label class="sf" for="h-ci"><span>تاريخ الوصول</span><input id="h-ci" name="ci" type="date"></label>
+        <button class="btn btn-yellow btn-lg" type="submit"><span id="h-ic"></span>تحقّق من التوفر</button>
+      </form>
+      <div class="quick" id="quick" aria-label="بحث سريع"></div>
     </div>
   </section>
 
-  <div class="container"><div class="stats reveal" id="stats" aria-label="معلومات سريعة">
+  <div class="container"><div class="stats reveal" id="stats" aria-label="إحصائيات المنصة">
     <div><strong id="s-units">—</strong><span>وحدة للإيجار</span></div>
     <div><strong>مبيت</strong><span>أو بدون مبيت</span></div>
     <div><strong>واتساب</strong><span>تأكيد الحجز</span></div>
   </div></div>
 
   <section class="section" id="units"><div class="container">
-    <div class="section-head"><div><h2>وحداتنا</h2><p>اختر الوحدة لتشاهد صورها والتواريخ المتاحة وترسل طلب الحجز</p></div></div>
-    <div class="grid" id="grid"></div>
+    <div class="section-head"><div><h2>وحداتنا</h2><p>اختر وحدتك وشاهد التواريخ المتاحة وأرسل طلب الحجز</p></div></div>
+    <div class="cities" id="cities"></div>
   </div></section>
 
-  <section class="section" id="how" style="padding-top:0"><div class="container">
-    <div class="section-head"><div><h2>كيف تحجز؟</h2><p>ثلاث خطوات بسيطة</p></div></div>
-    <div class="how reveal">
-      <div><b>1</b><h3>اختر الوحدة والتاريخ</h3><p>شاهد التقويم لتعرف الأيام المحجوزة واختر مبيت أو بدون مبيت.</p></div>
-      <div><b>2</b><h3>أرسل طلب الحجز</h3><p>اكتب اسمك ورقم جوالك وعدد الأشخاص، وسيصلنا الطلب فورًا.</p></div>
-      <div><b>3</b><h3>نؤكد معك</h3><p>نتواصل معك لتأكيد السعر النهائي والحجز عبر واتساب.</p></div>
+  <section class="section" id="gallery" style="padding-top:0"><div class="container">
+    <div class="section-head"><div><h2>من أجمل لقطاتنا</h2><p>لقطات مختارة من المنتجع</p></div><a class="link-more" href="gallery.html">عرض الكل<span data-i="left"></span></a></div>
+    <div class="grid" id="featured"></div>
+  </div></section>
+
+  <section class="section" style="padding-top:0"><div class="container">
+    <div class="section-head"><div><h2>أحدث الصور</h2><p>آخر ما أُضيف إلى المعرض</p></div><a class="link-more" href="gallery.html">عرض الكل<span data-i="left"></span></a></div>
+    <div class="grid" id="latest"></div>
+  </div></section>
+
+  <section class="section" style="padding-top:0"><div class="container">
+    <div class="owner-banner reveal" id="cta" style="background-image:url('assets/hero.webp')">
+      <div class="in">
+        <h2>جاهز لإجازتك؟</h2>
+        <p>اختر وحدتك وأرسل طلب الحجز الآن، ونؤكده معك عبر واتساب</p>
+        <ul id="owner-perks"><li>مبيت أو بدون مبيت حسب رغبتك</li><li>تقويم يوضح الأيام المتاحة</li><li>تأكيد مباشر من الفريق عبر واتساب</li></ul>
+        <a class="btn btn-yellow btn-lg" href="#units">اطلب حجزك الآن</a>
+      </div>
     </div>
   </div></section>
 </main>
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
   const $ = id => document.getElementById(id);
+  document.querySelectorAll('[data-i]').forEach(s => s.outerHTML = H.icon(s.dataset.i));
   $('eyebrow').insertAdjacentHTML('afterbegin', H.icon('star'));
-  $('grid').innerHTML = H.skeleton(4);
+  $('h-ic').outerHTML = H.icon('search');
+  document.querySelectorAll('#owner-perks li').forEach(li => li.insertAdjacentHTML('afterbegin', H.icon('check')));
+  $('quick').innerHTML = [['#units', 'الشاليهات'], ['unit.html?u=farm', 'المزرعة'], ['#gallery', 'معرض الصور'], ['#cta', 'تواصل معنا']].map(([h, t]) => `<a href="${h}">${t}</a>`).join('');
+  $('h-ci').min = new Date().toISOString().slice(0, 10);
+
+  $('hero-search').addEventListener('submit', e => {
+    e.preventDefault();
+    const f = e.target.elements, p = new URLSearchParams();
+    if (!f.u.value) { location.hash = '#units'; return; }
+    p.set('u', f.u.value); p.set('st', f.st.value); if (f.ci.value) p.set('ci', f.ci.value);
+    location.href = 'unit.html?' + p + '#book';
+  });
+
+  $('cities').innerHTML = Array.from({ length: 5 }, () => '<div class="city-card sk" aria-hidden="true"></div>').join('');
+  $('featured').innerHTML = H.skeleton(4);
+  $('latest').innerHTML = H.skeleton(8);
+
+  const fillPhotos = (id, rows, n) => { $(id).innerHTML = rows && rows.length ? rows.map(H.photoCard).join('') : H.photoCard(null, 0).repeat(n); };
   try {
-    const { data, error } = await sb.from('units').select('*').order('sort');
-    if (error) throw error;
-    $('grid').innerHTML = data.length ? data.map(H.unitCard).join('') : H.empty('لا توجد وحدات حاليًا', 'نعمل على إضافتها قريبًا');
-    $('s-units').textContent = H.fmt(data.filter(u => u.bookable).length);
+    const [u, f, l] = await Promise.all([
+      sb.from('units').select('*').order('sort'),
+      sb.from('gallery_photos').select('*, units(slug)').eq('featured', true).order('sort').order('created_at', { ascending: false }).limit(4),
+      sb.from('gallery_photos').select('*, units(slug)').order('created_at', { ascending: false }).limit(8)
+    ]);
+    if (u.error || f.error || l.error) throw (u.error || f.error || l.error);
+    $('h-unit').insertAdjacentHTML('beforeend', u.data.filter(x => x.bookable).map(x => `<option value="${H.esc(x.slug)}">${H.esc(x.name)}</option>`).join(''));
+    $('cities').innerHTML = u.data.length ? u.data.map(x => `<a class="city-card reveal" href="unit.html?u=${encodeURIComponent(x.slug)}">${(x.images || [])[0] ? `<img loading="lazy" src="${H.esc(x.images[0])}" alt="">` : ''}<div class="ct"><strong>${H.esc(x.name)}</strong><span>${x.kind === 'farm' ? 'مزرعة' : 'شاليه'}${x.bookable ? '' : ' · غير متاح'}</span></div></a>`).join('') : H.empty('لا توجد وحدات حاليًا');
+    fillPhotos('featured', f.data, 4);
+    fillPhotos('latest', l.data, 8);
+    $('s-units').textContent = H.fmt(u.data.filter(x => x.bookable).length);
   } catch (e) {
     console.error(e);
-    $('grid').innerHTML = H.empty('تعذّر تحميل الوحدات', 'تحقّق من اتصالك وحاول مرة أخرى', '<button class="btn btn-navy" onclick="location.reload()">إعادة المحاولة</button>');
+    ['cities', 'featured', 'latest'].forEach(id => $(id).innerHTML = H.empty('تعذّر تحميل البيانات', 'تحقّق من اتصالك وحاول مرة أخرى', '<button class="btn btn-navy" onclick="location.reload()">إعادة المحاولة</button>'));
   }
   H.hideLoader();
 });

@@ -139,7 +139,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         $('ci').min = today; $('co').min = $('ci').value ? iso(new Date(day($('ci').value).getTime() + 864e5)) : today;
         if ($('co').value && $('co').value <= $('ci').value) $('co').value = '';
       };
+      const qv = H.qs('st'), qd = H.qs('ci');
+      if (qv === 'overnight' || qv === 'day_use') form.elements.st.value = qv;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(qd || '') && qd >= today) $('ci').value = qd;
       form.addEventListener('change', sync); sync();
+      if (location.hash === '#book') $('book').scrollIntoView();
       form.addEventListener('submit', async e => {
         e.preventDefault();
         const err = m => { $('err').textContent = m; return false; };

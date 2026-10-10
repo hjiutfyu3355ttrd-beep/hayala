@@ -53,12 +53,13 @@
       `<footer class="site-footer"><div class="container">
         <div class="footer-grid">
           <div class="footer-brand"><img src="${logo}" alt="" width="56" height="56"><p>${esc(CONFIG.tagline)}</p></div>
-          <div><h3>روابط سريعة</h3><ul>${links.map(([h,t]) => `<li><a href="${U(h)}">${t}</a></li>`).join('')}</ul></div>
+          <div><h3>روابط سريعة</h3><ul>${links.concat([['gallery.html','معرض الصور']]).map(([h,t]) => `<li><a href="${U(h)}">${t}</a></li>`).join('')}</ul></div>
           <div><h3>تواصل معنا</h3><ul>${phoneOk ? `<li><a href="tel:${esc(CONFIG.phone)}" dir="ltr">${esc(CONFIG.phone)}</a></li>` : ''}${emailOk ? `<li><a href="mailto:${esc(CONFIG.email)}">${esc(CONFIG.email)}</a></li>` : ''}<li>${esc(CONFIG.address)}</li></ul></div>
         </div>
         <div class="copyright">© ${new Date().getFullYear()} ${esc(CONFIG.name)}</div>
       </div></footer>
-      <nav class="tabbar" aria-label="تنقل سريع">${links.map(([h,t,ic]) => `<a href="${U(h)}"${isActive(h) ? ' class="active" aria-current="page"' : ''}>${icon(ic)}<span>${t}</span></a>`).join('')}</nav>
+      <nav class="tabbar" aria-label="تنقل سريع">${links.slice(0, 3).map(([h,t,ic]) => `<a href="${U(h)}"${isActive(h) ? ' class="active" aria-current="page"' : ''}>${icon(ic)}<span>${t}</span></a>`).join('')}
+        <a href="${U('index.html')}#cta">${icon('phone')}<span>تواصل</span></a></nav>
       <button class="to-top icon-btn" aria-label="العودة للأعلى">${icon('up')}</button>`);
 
     const btn = document.querySelector('.menu-btn'), nav = document.getElementById('nav');
@@ -134,6 +135,13 @@
       <div class="card-body"><h3>${esc(u.name)}</h3>
         ${facts.length ? `<div class="facts">${facts.map(f => `<span>${f}</span>`).join('')}</div>` : ''}
         <div class="card-foot">${from ? `<small>يبدأ من</small>${H.price(from)}` : '<small>اتصل لمعرفة السعر</small>'}</div></div></a>`;
+    },
+    photoCard: (ph, i = 0) => {
+      const inner = ph
+        ? `<div class="card-img"><img loading="lazy" decoding="async" src="${esc(ph.image)}" alt="${esc(ph.title || '')}"></div>${(ph.title || ph.subtitle) ? `<div class="card-body">${ph.title ? `<h3>${esc(ph.title)}</h3>` : ''}${ph.subtitle ? `<div class="card-sub">${esc(ph.subtitle)}</div>` : ''}</div>` : ''}`
+        : `<div class="card-img ph">${icon('home')}</div><div class="card-body"><h3>صور المنتجع قريبًا</h3></div>`;
+      const slug = ph && ph.units && ph.units.slug;
+      return slug ? `<a class="card reveal" style="--d:${Math.min(i, 8) * 45}ms" href="${U('unit.html')}?u=${encodeURIComponent(slug)}">${inner}</a>` : `<div class="card reveal" style="--d:${Math.min(i, 8) * 45}ms">${inner}</div>`;
     },
     skeleton: (n = 8) => Array.from({ length: n }, () => `<div class="card sk-card" aria-hidden="true"><div class="card-img sk"></div><div class="card-body"><div class="sk sk-line w80"></div><div class="sk sk-line w50"></div><div class="sk sk-line w40 tall"></div></div></div>`).join(''),
     empty: (title, text = '', action = '') => `<div class="empty" style="grid-column:1/-1"><div class="empty-ic">${icon('search')}</div><strong>${title}</strong>${text ? `<p>${text}</p>` : ''}${action}</div>`,
