@@ -40,26 +40,25 @@
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
   const $ = id => document.getElementById(id), E = H.esc;
-  const ST = { pending: 'قيد المراجعة', approved: 'معتمد', rejected: 'مرفوض' };
+  const ST = { new: 'جديد', contacted: 'تم التواصل', confirmed: 'مؤكد', declined: 'مرفوض', cancelled: 'ملغي' };
   const dt = v => v ? new Date(v).toLocaleDateString('ar-SA') : '';
   const yn = v => v ? 'نعم' : 'لا';
-  const TYPES = ['شاليه', 'استراحة', 'منتجع', 'شقة'];
+  const stay = v => v === 'overnight' ? 'مبيت' : 'بدون مبيت';
+  const thumb = v => v ? `<img src="${E(v)}" alt="" style="width:64px;height:48px;object-fit:cover;border-radius:8px">` : '';
   const BUCKET = 'property-images';
-  let cities = [], cur = 'subscriptions', rows = [];
+  let units = [], cur = 'booking_requests', rows = [];
   let media = {}, mOrig = {}, mUp = [], mFolder = '', busy = 0; // حالة الصور داخل النموذج المفتوح (الحالية / الأصلية / المرفوعة في هذه الجلسة)
   // حقول النموذج: [مفتاح, عنوان, نوع(t نص/n رقم/a نص طويل/l أسطر/c اختيار/s قائمة/p صور متعددة/i صورة واحدة), إلزامي, خيارات]
   const ENT = {
-    subscriptions: { t: 'طلبات الاشتراك', sel: '*, packages(name)', status: true, mk: true,
-      cols: [['owner_name', 'المالك'], ['phone', 'الجوال'], ['property_name', 'العقار'], ['city', 'المدينة'], ['packages', 'الباقة', v => v && v.name], ['payment_method', 'الدفع'], ['status', 'الحالة', v => ST[v] || v], ['created_at', 'التاريخ', dt]] },
-    properties: { t: 'العقارات', sel: '*, cities(name)', status: true, star: true, add: true,
-      cols: [['name', 'الاسم'], ['cities', 'المدينة', v => v && v.name], ['price', 'السعر'], ['status', 'الحالة', v => ST[v] || v], ['featured', 'مميز', yn]],
-      form: [['name', 'اسم العقار', 't', 1], ['owner_name', 'اسم المالك', 't'], ['owner_phone', 'جوال المالك', 't'], ['city_id', 'المدينة', 's', 0, 'cities'], ['district', 'الحي', 't'], ['location', 'الموقع / المنطقة', 't'], ['direction', 'الاتجاه', 's', 0, ['شمال', 'جنوب', 'شرق', 'غرب']], ['type', 'النوع', 's', 0, TYPES], ['price_weekday', 'سعر وسط الأسبوع', 'n'], ['price_weekend', 'سعر نهاية الأسبوع', 'n'], ['price_overnight', 'سعر المبيت', 'n'], ['price_holiday', 'سعر الإجازات', 'n'], ['capacity', 'السعة', 'n'], ['rooms', 'الغرف', 'n'], ['status', 'الحالة', 's', 1, ['pending', 'approved', 'rejected']], ['featured', 'عقار مميز', 'c'], ['has_pool', 'يوجد مسبح', 'c'], ['amenities', 'المميزات (كل سطر ميزة)', 'l'], ['images', 'صور العقار', 'p'], ['description', 'الوصف', 'a']] },
-    cities: { t: 'المدن', add: true, order: 'sort', asc: true,
-      cols: [['name', 'المدينة'], ['sort', 'الترتيب']],
-      form: [['name', 'اسم المدينة', 't', 1], ['sort', 'الترتيب', 'n'], ['image', 'صورة المدينة', 'i']] },
-    packages: { t: 'الباقات', add: true, order: 'sort', asc: true,
-      cols: [['name', 'الباقة'], ['price', 'السعر'], ['period', 'المدة'], ['active', 'فعّالة', yn]],
-      form: [['name', 'اسم الباقة', 't', 1], ['price', 'السعر', 'n', 1], ['period', 'المدة', 't'], ['features', 'المميزات (كل سطر ميزة)', 'l'], ['sort', 'الترتيب', 'n'], ['active', 'فعّالة', 'c']] },
+    booking_requests: { t: 'طلبات الحجز',
+      cols: [['unit_name', 'الوحدة'], ['guest_name', 'الاسم'], ['phone', 'الجوال'], ['stay_type', 'النوع', stay], ['check_in', 'من'], ['check_out', 'إلى'], ['guests', 'الأشخاص'], ['notes', 'ملاحظات'], ['status', 'الحالة', v => ST[v] || v], ['created_at', 'التاريخ', dt]],
+      acts: r => [['wa', 'واتساب'], r.status === 'new' && ['st:contacted', 'تم التواصل'], r.status !== 'confirmed' && ['st:confirmed', 'تأكيد', 'btn-navy'], (r.status === 'new' || r.status === 'contacted') && ['st:declined', 'رفض'], r.status === 'confirmed' && ['st:cancelled', 'إلغاء التأكيد']].filter(Boolean) },
+    units: { t: 'الوحدات', nodel: true, order: 'sort', asc: true,
+      cols: [['name', 'الوحدة'], ['capacity', 'السعة'], ['price_overnight_from', 'مبيت من'], ['price_dayuse_from', 'بدون مبيت من'], ['bookable', 'متاحة للحجز', yn], ['active', 'ظاهرة', yn]],
+      form: [['name', 'اسم الوحدة', 't', 1], ['capacity', 'السعة (عدد الأشخاص)', 'n'], ['rooms', 'عدد الغرف', 'n'], ['price_overnight_from', 'السعر يبدأ من - مبيت', 'n'], ['price_dayuse_from', 'السعر يبدأ من - بدون مبيت', 'n'], ['bookable', 'متاحة للحجز', 'c'], ['active', 'تظهر في الموقع', 'c'], ['sort', 'الترتيب', 'n'], ['amenities', 'المميزات (كل سطر ميزة)', 'l'], ['images', 'صور الوحدة', 'p'], ['description', 'الوصف', 'a']] },
+    gallery_photos: { t: 'معرض الصور', add: true, bulk: true,
+      cols: [['image', 'الصورة', thumb, 1], ['title', 'العنوان'], ['subtitle', 'الوصف'], ['featured', 'مميزة', yn], ['sort', 'الترتيب']],
+      form: [['image', 'الصورة', 'i', 1], ['title', 'العنوان (يظهر تحت الصورة)', 't'], ['subtitle', 'وصف قصير', 't'], ['unit_id', 'الوحدة المرتبطة (اختياري)', 's', 0, 'units'], ['featured', 'تظهر في قسم "من أجمل لقطاتنا"', 'c'], ['sort', 'الترتيب', 'n']] },
     posts: { t: 'المقالات', add: true,
       cols: [['title', 'العنوان'], ['slug', 'الرابط'], ['published', 'منشور', yn], ['created_at', 'التاريخ', dt]],
       form: [['title', 'العنوان', 't', 1], ['slug', 'الرابط (إنجليزي بدون مسافات)', 't', 1], ['excerpt', 'مقتطف', 't'], ['cover', 'صورة الغلاف', 'i'], ['body', 'النص (سطر فاضي بين الفقرات)', 'a'], ['published', 'منشور', 'c']] },
@@ -138,6 +137,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderMedia(k);
   }
 
+  async function bulkUpload(input) {
+    const files = [...input.files]; if (!files.length) return;
+    mFolder = 'gallery_photos'; const st = $('bulk-s'); let ok = 0;
+    for (let n = 0; n < files.length; n++) {
+      st.textContent = `جاري رفع ${n + 1} من ${files.length}...`;
+      try {
+        const url = await uploadImg(files[n]);
+        const { error } = await sb.from('gallery_photos').insert({ image: url });
+        if (error) { purge([url]); throw error; }
+        ok++;
+      } catch (e) { console.error(e); H.toast('تعذّر رفع صورة: ' + (e.message || '')); }
+    }
+    input.value = ''; H.toast(`تم رفع ${ok} من ${files.length}`, ok ? 'ok' : ''); load();
+  }
+  async function badge() {
+    const { count } = await sb.from('booking_requests').select('id', { count: 'exact', head: true }).eq('status', 'new');
+    const b = document.querySelector('#tabs button[data-k="booking_requests"]');
+    if (b) b.textContent = `${ENT.booking_requests.t}${count ? ` (${count})` : ''}`;
+  }
   async function enter() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { $('app').hidden = true; $('login').hidden = false; return; }
@@ -145,9 +163,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('login').hidden = !!a;
     if (!a) { $('lerr').textContent = 'هذا الحساب ليس أدمن. أضفه لجدول admins ثم أعد الدخول.'; await sb.auth.signOut(); $('login').hidden = false; return; }
     $('app').hidden = false;
-    const c = await sb.from('cities').select('id,name').order('sort'); cities = c.data || [];
+    const c = await sb.from('units').select('id,name').order('sort'); units = c.data || [];
     $('tabs').innerHTML = Object.keys(ENT).map(k => `<button data-k="${k}">${ENT[k].t}</button>`).join('');
-    show(cur);
+    show(cur); badge();
   }
   function show(k) {
     discard();
@@ -162,11 +180,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     rows = data || [];
     const btn = (a, i, t, c) => `<button class="btn ${c || 'btn-line'} btn-sm" data-a="${a}" data-i="${i}">${t}</button>`;
     const th = e.cols.map(c => `<th>${c[1]}</th>`).join('') + '<th></th>';
-    const tr = rows.map((r, i) => `<tr>${e.cols.map(c => `<td>${E(c[2] ? c[2](r[c[0]], r) : r[c[0]])}</td>`).join('')}<td class="acts">
-      ${e.status && r.status !== 'approved' ? btn('ok', i, 'اعتماد', 'btn-navy') : ''}${e.status && r.status !== 'rejected' ? btn('no', i, 'رفض') : ''}
-      ${e.star ? btn('star', i, r.featured ? 'إلغاء التمييز' : 'تمييز') : ''}${e.mk ? btn('mk', i, 'إنشاء عقار') : ''}
-      ${e.form ? btn('edit', i, 'تعديل') : ''}${btn('del', i, 'حذف')}</td></tr>`).join('');
-    $('list').innerHTML = `${e.add ? `<p><button class="btn btn-yellow btn-sm" data-a="new">إضافة جديد</button></p>` : ''}
+    const tr = rows.map((r, i) => `<tr>${e.cols.map(c => `<td>${c[3] ? c[2](r[c[0]], r) : E(c[2] ? c[2](r[c[0]], r) : r[c[0]])}</td>`).join('')}<td class="acts">
+      ${(e.acts ? e.acts(r) : []).map(([a, t, c]) => btn(a, i, t, c)).join('')}${e.form ? btn('edit', i, 'تعديل') : ''}${e.nodel ? '' : btn('del', i, 'حذف')}</td></tr>`).join('');
+    $('list').innerHTML = `${e.add ? `<p><button class="btn btn-yellow btn-sm" data-a="new">إضافة جديد</button>${e.bulk ? ` <label class="btn btn-navy btn-sm" style="cursor:pointer;margin-inline-start:8px">رفع عدة صور دفعة واحدة<input type="file" id="bulk" accept="image/*" multiple hidden></label> <span class="ms" id="bulk-s" style="color:#64748b;font-size:14px"></span>` : ''}</p>` : ''}
       <p class="result-count">${rows.length} سجل</p>
       ${rows.length ? `<div class="tbl-wrap"><table class="adm"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>` : '<p class="empty">لا توجد بيانات</p>'}`;
   }
@@ -191,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (t === 'a') inp = `<textarea id="f-${k}" rows="6">${E(x)}</textarea>`;
       else if (t === 'l') inp = `<textarea id="f-${k}" rows="4" dir="ltr">${E(x)}</textarea>`;
       else if (t === 'c') return `<div class="field"><label><input type="checkbox" id="f-${k}" ${x ? 'checked' : ''}> ${l}</label></div>`;
-      else if (t === 's') { const opts = o === 'cities' ? cities.map(c => [c.id, c.name]) : o.map(s => [s, ST[s] || s]); inp = `<select id="f-${k}"><option value="">-</option>${opts.map(([a, b]) => `<option value="${E(a)}" ${a === x ? 'selected' : ''}>${E(b)}</option>`).join('')}</select>`; }
+      else if (t === 's') { const opts = o === 'units' ? units.map(c => [c.id, c.name]) : o.map(s => [s, ST[s] || s]); inp = `<select id="f-${k}"><option value="">-</option>${opts.map(([a, b]) => `<option value="${E(a)}" ${a === x ? 'selected' : ''}>${E(b)}</option>`).join('')}</select>`; }
       else inp = `<input id="f-${k}" type="${t === 'n' ? 'number' : 'text'}" value="${E(x)}" ${t === 'n' ? 'step="any"' : ''}>`;
       return `<div class="field${t === 'a' || t === 'l' ? ' full' : ''}">${lab}${inp}</div>`;
     }).join('')}</div>
@@ -219,11 +235,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (req && !s) return H.toast(`${l} مطلوب`);
         o[k] = t === 'c' ? s : t === 'n' ? (s === '' ? null : Number(s)) : t === 'l' ? s.split('\n').map(z => z.trim()).filter(Boolean) : (s || null);
       }
-      if (table === 'properties') { // price = أقل سعر موجب (يظهر في البطاقات والفلترة)
-        const t = ['price_weekday', 'price_weekend', 'price_overnight', 'price_holiday'].map(k => o[k]).filter(x => x > 0);
-        if (!t.length) return H.toast('أدخل سعرًا واحدًا على الأقل');
-        o.price = Math.min(...t);
-      }
       $('fs').disabled = true;
       const q = row && row.id ? sb.from(table).update(o).eq('id', row.id) : sb.from(table).insert(o);
       const { error } = await q;
@@ -244,14 +255,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('pw').value = ''; enter();
   };
   $('out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+  $('list').addEventListener('change', e => { if (e.target.id === 'bulk') bulkUpload(e.target); });
   $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.k); });
   $('list').addEventListener('click', async e => {
     const b = e.target.closest('button[data-a]'); if (!b) return;
     const r = rows[b.dataset.i], a = b.dataset.a, E2 = ENT[cur];
     if (a === 'new') return form(null, E2.form, cur);
     if (a === 'edit') return form(r, E2.form, cur);
-    if (a === 'ok' || a === 'no') return upd(r.id, { status: a === 'ok' ? 'approved' : 'rejected' });
-    if (a === 'star') return upd(r.id, { featured: !r.featured });
+    if (a.startsWith('st:')) { await upd(r.id, { status: a.slice(3) }); return badge(); }
+    if (a === 'wa') return window.open(H.waLink(r.phone, `مرحبًا ${r.guest_name}، بخصوص طلب حجزك ${r.unit_name} من ${r.check_in}`), '_blank', 'noopener');
     if (a === 'del') {
       if (confirm('تأكيد الحذف نهائيًا؟')) {
         const urls = []; (E2.form || []).forEach(([k, , t]) => { if (t === 'p') (r[k] || []).forEach(u => urls.push(u)); else if (t === 'i' && r[k]) urls.push(r[k]); });
@@ -259,11 +271,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (error) H.toast('تعذّر الحذف'); else { H.toast('تم الحذف'); purge(urls); load(); }
       }
       return;
-    }
-    if (a === 'mk') { // إنشاء عقار من طلب اشتراك
-      const d = r.details || {}, c = cities.find(x => x.name === r.city);
-      cur = 'properties'; document.querySelectorAll('#tabs button').forEach(t => t.classList.toggle('on', t.dataset.k === cur));
-      form({ owner_name: r.owner_name, owner_phone: r.phone, name: r.property_name, city_id: c && c.id, district: d.district, type: d.type, price_weekday: d.price, price_weekend: d.price, capacity: d.capacity, rooms: d.rooms, description: d.notes, status: 'pending' }, ENT.properties.form, 'properties');
     }
   });
   try { await enter(); } catch (e) { console.error(e); $('login').hidden = false; }
