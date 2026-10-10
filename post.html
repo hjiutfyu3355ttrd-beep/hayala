@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const paras = String(p.body || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean).map(s => `<p>${H.esc(s).replace(/\n/g, '<br>')}</p>`).join('');
     view.innerHTML = `${p.cover ? `<img class="article-cover" src="${H.esc(p.cover)}" alt="${H.esc(p.title)}">` : ''}
       <h1>${H.esc(p.title)}</h1><time>${new Date(p.created_at).toLocaleDateString('ar-SA')}</time>${paras}
-      <div class="article-cta"><a class="btn btn-yellow" href="properties.html">تصفّح العقارات</a></div>`;
+      <div class="article-cta"><a class="btn btn-yellow" href="index.html#units">تصفّح الوحدات</a></div>`;
   } catch (e) { console.error(e); msg('تعذّر تحميل المقال، حاول مرة أخرى لاحقًا'); }
   H.hideLoader();
 });

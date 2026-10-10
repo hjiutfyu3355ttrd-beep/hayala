@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>حيالة القصيم | شاليهات واستراحات في القصيم</title>
-<meta name="description" content="منصة حجز شاليهات واستراحات ومنتجعات في القصيم: بريدة، عنيزة، البكيرية وغيرها. تصفّح العروض واحجز عبر واتساب.">
+<title>حيالة القصيم | شاليهات ومزرعة للإيجار في القصيم</title>
+<meta name="description" content="شاليهات ومزرعة للإيجار في القصيم، مبيت أو بدون مبيت. اختر وحدتك وأرسل طلب الحجز ونؤكده معك عبر واتساب.">
 <meta name="theme-color" content="#14487F">
 <link rel="icon" href="assets/logo.png">
 <link rel="preconnect" href="https://onktlkgabkjlxnhumoez.supabase.co" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="image" href="assets/hero.webp" fetchpriority="high">
 <meta property="og:type" content="website"><meta property="og:locale" content="ar_SA">
-<meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="حيالة القصيم | شاليهات واستراحات في القصيم">
-<meta property="og:description" content="منصة حجز شاليهات واستراحات ومنتجعات في القصيم: بريدة، عنيزة، البكيرية وغيرها. تصفّح العروض واحجز عبر واتساب."><meta property="og:image" content="assets/hero.webp">
+<meta property="og:site_name" content="حيالة القصيم"><meta property="og:title" content="حيالة القصيم | شاليهات ومزرعة للإيجار في القصيم">
+<meta property="og:description" content="شاليهات ومزرعة للإيجار في القصيم، مبيت أو بدون مبيت. اختر وحدتك وأرسل طلب الحجز."><meta property="og:image" content="assets/hero.webp">
 <link rel="stylesheet" href="assets/style.css">
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script defer src="assets/supabase.js"></script>
@@ -23,89 +23,49 @@
   <section class="hero">
     <div class="hero-bg"><img src="assets/hero.webp" alt="" fetchpriority="high"></div>
     <div class="container">
-      <span class="hero-eyebrow" id="eyebrow">أفضل وجهات الاسترخاء في القصيم</span>
-      <h1>استراحتك المثالية في <em>القصيم</em> على بُعد ضغطة</h1>
-      <p class="lead">شاليهات واستراحات في بريدة وعنيزة وما حولها. قارن الأسعار وتواصل مع المالك مباشرة.</p>
-      <form class="search-box" id="hero-search" action="properties.html" role="search" aria-label="ابحث عن عقار">
-        <label class="sf" for="h-q"><span>ابحث</span><input id="h-q" name="q" type="search" placeholder="اسم العقار أو الحي" autocomplete="off"></label>
-        <label class="sf" for="h-city"><span>المدينة</span><select id="h-city" name="city"><option value="">كل المدن</option></select></label>
-        <label class="sf" for="h-type"><span>النوع</span><select id="h-type" name="type"><option value="">كل الأنواع</option><option>شاليه</option><option>استراحة</option><option>منتجع</option><option>شقة</option></select></label>
-        <button class="btn btn-yellow btn-lg" type="submit"><span id="h-ic"></span>ابحث</button>
-      </form>
-      <div class="quick" id="quick" aria-label="بحث سريع"></div>
+      <span class="hero-eyebrow" id="eyebrow">مبيت أو بدون مبيت</span>
+      <h1>إجازتك في <em>حيالة القصيم</em> بين النخيل والمسبح</h1>
+      <p class="lead">شاليهات ومزرعة للإيجار. اختر وحدتك، أرسل طلب الحجز، ونؤكده معك على واتساب.</p>
+      <div class="hero-cta">
+        <a class="btn btn-yellow btn-lg" href="#units">تصفّح الوحدات</a>
+        <a class="btn btn-line btn-lg" id="hero-wa" href="#how" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.5)">كيف أحجز؟</a>
+      </div>
     </div>
   </section>
 
-  <div class="container"><div class="stats reveal" id="stats" aria-label="إحصائيات المنصة">
-    <div><strong id="s-props">—</strong><span>عقار متاح</span></div>
-    <div><strong id="s-cities">—</strong><span>مدينة</span></div>
-    <div><strong>واتساب</strong><span>حجز مباشر</span></div>
+  <div class="container"><div class="stats reveal" id="stats" aria-label="معلومات سريعة">
+    <div><strong id="s-units">—</strong><span>وحدة للإيجار</span></div>
+    <div><strong>مبيت</strong><span>أو بدون مبيت</span></div>
+    <div><strong>واتساب</strong><span>تأكيد الحجز</span></div>
   </div></div>
 
-  <section class="section"><div class="container">
-    <div class="section-head"><div><h2>تصفّح حسب المدينة</h2><p>اختر وجهتك وشاهد كل العقارات المتاحة فيها</p></div></div>
-    <div class="cities" id="cities"></div>
+  <section class="section" id="units"><div class="container">
+    <div class="section-head"><div><h2>وحداتنا</h2><p>اختر الوحدة لتشاهد صورها والتواريخ المتاحة وترسل طلب الحجز</p></div></div>
+    <div class="grid" id="grid"></div>
   </div></section>
 
-  <section class="section" style="padding-top:0"><div class="container">
-    <div class="section-head"><div><h2>العروض المميزة</h2><p>عروض مميّزة على المنصة</p></div><a class="link-more" href="properties.html?featured=1">عرض الكل<span data-i="left"></span></a></div>
-    <div class="grid" id="featured"></div>
-  </div></section>
-
-  <section class="section" style="padding-top:0"><div class="container">
-    <div class="section-head"><div><h2>أحدث العقارات</h2><p>آخر ما أُضيف على المنصة</p></div><a class="link-more" href="properties.html">عرض الكل<span data-i="left"></span></a></div>
-    <div class="grid" id="latest"></div>
-  </div></section>
-
-  <section class="section" style="padding-top:0"><div class="container">
-    <div class="owner-banner reveal" style="background-image:url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1400&h=600&fit=crop&q=75')">
-      <div class="in">
-        <h2>لديك شاليه أو استراحة؟</h2>
-        <p>انضم لحيالة القصيم وابدأ باستقبال الحجوزات من الباحثين عن شاليه واستراحة في القصيم</p>
-        <ul id="owner-perks"><li>ظهور فوري أمام الباحثين في منطقتك</li><li>تواصل مباشر مع العملاء عبر واتساب</li><li>باقات مرنة تناسب احتياجك</li></ul>
-        <a class="btn btn-yellow btn-lg" href="subscription.html">سجّل عقارك الآن</a>
-      </div>
+  <section class="section" id="how" style="padding-top:0"><div class="container">
+    <div class="section-head"><div><h2>كيف تحجز؟</h2><p>ثلاث خطوات بسيطة</p></div></div>
+    <div class="how reveal">
+      <div><b>1</b><h3>اختر الوحدة والتاريخ</h3><p>شاهد التقويم لتعرف الأيام المحجوزة واختر مبيت أو بدون مبيت.</p></div>
+      <div><b>2</b><h3>أرسل طلب الحجز</h3><p>اكتب اسمك ورقم جوالك وعدد الأشخاص، وسيصلنا الطلب فورًا.</p></div>
+      <div><b>3</b><h3>نؤكد معك</h3><p>نتواصل معك لتأكيد السعر النهائي والحجز عبر واتساب.</p></div>
     </div>
   </div></section>
 </main>
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
   const $ = id => document.getElementById(id);
-  document.querySelectorAll('[data-i]').forEach(s => s.outerHTML = H.icon(s.dataset.i));
   $('eyebrow').insertAdjacentHTML('afterbegin', H.icon('star'));
-  $('h-ic').outerHTML = H.icon('search');
-  document.querySelectorAll('#owner-perks li').forEach(li => li.insertAdjacentHTML('afterbegin', H.icon('check')));
-  $('quick').innerHTML = [['شاليه','شاليهات'],['استراحة','استراحات'],['منتجع','منتجعات']].map(([v,t]) => `<a href="properties.html?type=${encodeURIComponent(v)}">${t}</a>`).join('') + `<a href="properties.html?pool=1">${H.icon('pool')}بمسبح</a>`;
-
-  $('hero-search').addEventListener('submit', e => {
-    e.preventDefault();
-    const p = new URLSearchParams();
-    ['q','city','type'].forEach(k => { const v = e.target.elements[k].value.trim(); if (v) p.set(k, v); });
-    location.href = 'properties.html' + (p.toString() ? '?' + p : '');
-  });
-
-  $('cities').innerHTML = Array.from({ length: 5 }, () => '<div class="city-card sk" aria-hidden="true"></div>').join('');
-  $('featured').innerHTML = H.skeleton(4);
-  $('latest').innerHTML = H.skeleton(8);
-
-  const fill = (id, rows, render, msg) => { $(id).innerHTML = rows && rows.length ? rows.map(render).join('') : H.empty(msg); };
+  $('grid').innerHTML = H.skeleton(4);
   try {
-    const sel = '*, cities(name)';
-    const [c, f, l] = await Promise.all([
-      sb.from('cities_with_count').select('*').order('sort'),
-      sb.from('properties').select(sel).eq('featured', true).order('created_at', { ascending: false }).limit(8),
-      sb.from('properties').select(sel, { count: 'exact' }).order('created_at', { ascending: false }).limit(8)
-    ]);
-    if (c.error || f.error || l.error) throw (c.error || f.error || l.error);
-    $('h-city').insertAdjacentHTML('beforeend', c.data.map(x => `<option>${H.esc(x.name)}</option>`).join(''));
-    fill('cities', c.data, x => `<a class="city-card reveal" href="properties.html?city=${encodeURIComponent(x.name)}">${x.image ? `<img loading="lazy" src="${H.esc(x.image)}" alt="">` : ''}<div class="ct"><strong>${H.esc(x.name)}</strong><span>${x.properties_count} عقار</span></div></a>`, 'لا توجد مدن حاليًا');
-    fill('featured', f.data.slice(0, 4), H.card, 'لا توجد عروض مميزة حاليًا');
-    fill('latest', l.data, H.card, 'لا توجد عقارات حاليًا');
-    $('s-props').textContent = H.fmt(l.count ?? c.data.reduce((s, x) => s + (x.properties_count || 0), 0));
-    $('s-cities').textContent = H.fmt(c.data.length);
+    const { data, error } = await sb.from('units').select('*').order('sort');
+    if (error) throw error;
+    $('grid').innerHTML = data.length ? data.map(H.unitCard).join('') : H.empty('لا توجد وحدات حاليًا', 'نعمل على إضافتها قريبًا');
+    $('s-units').textContent = H.fmt(data.filter(u => u.bookable).length);
   } catch (e) {
     console.error(e);
-    ['cities', 'featured', 'latest'].forEach(id => $(id).innerHTML = H.empty('تعذّر تحميل البيانات', 'تحقّق من اتصالك وحاول مرة أخرى', '<button class="btn btn-navy" onclick="location.reload()">إعادة المحاولة</button>'));
+    $('grid').innerHTML = H.empty('تعذّر تحميل الوحدات', 'تحقّق من اتصالك وحاول مرة أخرى', '<button class="btn btn-navy" onclick="location.reload()">إعادة المحاولة</button>');
   }
   H.hideLoader();
 });

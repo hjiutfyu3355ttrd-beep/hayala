@@ -1,7 +1,7 @@
 (function () {
   const CONFIG = {
     name: 'حيالة القصيم',
-    tagline: 'منصة الشاليهات والاستراحات في منطقة القصيم. حجز سهل ومميز.',
+    tagline: 'شاليهات ومزرعة للإيجار في القصيم، مبيت أو بدون مبيت.',
     phone: '05XXXXXXXX', email: 'info@example.com', // عدّلها لاحقًا
     address: 'منطقة القصيم، المملكة العربية السعودية'
   };
@@ -9,7 +9,8 @@
   const root = new URL('../', src).href;
   const U = p => root + p;
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const links = [['index.html','الرئيسية','home'],['properties.html','العقارات','search'],['blog.html','المدونة','book'],['suggest.html','اقترح لنا','chat']];
+  const links = [['index.html','الرئيسية','home'],['index.html#units','الوحدات','grid'],['blog.html','المدونة','book'],['suggest.html','اقترح لنا','chat']];
+  const phoneOk = /^05\d{8}$/.test(CONFIG.phone), emailOk = /@/.test(CONFIG.email) && !/example\.com$/.test(CONFIG.email);
 
   const P = {
     home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
@@ -33,7 +34,7 @@
   const icon = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
 
   const page = location.pathname.split('/').pop() || 'index.html';
-  const isActive = h => h === page || (page === 'post.html' && h === 'blog.html') || (page === 'property.html' && h === 'properties.html');
+  const isActive = h => h === page || (page === 'post.html' && h === 'blog.html') || (page === 'unit.html' && h === 'index.html#units');
 
   function inject() {
     const logo = U('assets/logo.png');
@@ -44,7 +45,7 @@
         <a class="brand" href="${U('index.html')}" aria-label="${esc(CONFIG.name)} - الرئيسية"><img src="${logo}" alt="" width="44" height="44"><span>${esc(CONFIG.name)}</span></a>
         <nav class="nav" id="nav" aria-label="القائمة الرئيسية">${links.map(([h,t]) => `<a href="${U(h)}"${isActive(h) ? ' class="active" aria-current="page"' : ''}>${t}</a>`).join('')}</nav>
         <div class="head-actions">
-          <a class="btn btn-yellow btn-head" href="${U('subscription.html')}">${icon('plus')}<span>سجّل عقارك</span></a>
+          <a class="btn btn-yellow btn-head" href="${U('index.html')}#units">${icon('grid')}<span>احجز الآن</span></a>
           <button class="icon-btn menu-btn" aria-label="فتح القائمة" aria-expanded="false" aria-controls="nav">${icon('menu')}</button>
         </div>
       </div></header>`);
@@ -52,13 +53,12 @@
       `<footer class="site-footer"><div class="container">
         <div class="footer-grid">
           <div class="footer-brand"><img src="${logo}" alt="" width="56" height="56"><p>${esc(CONFIG.tagline)}</p></div>
-          <div><h3>روابط سريعة</h3><ul>${links.concat([['subscription.html','اشترك معنا']]).map(([h,t]) => `<li><a href="${U(h)}">${t}</a></li>`).join('')}</ul></div>
-          <div><h3>تواصل معنا</h3><ul><li><a href="tel:${esc(CONFIG.phone)}" dir="ltr">${esc(CONFIG.phone)}</a></li><li><a href="mailto:${esc(CONFIG.email)}">${esc(CONFIG.email)}</a></li><li>${esc(CONFIG.address)}</li></ul></div>
+          <div><h3>روابط سريعة</h3><ul>${links.map(([h,t]) => `<li><a href="${U(h)}">${t}</a></li>`).join('')}</ul></div>
+          <div><h3>تواصل معنا</h3><ul>${phoneOk ? `<li><a href="tel:${esc(CONFIG.phone)}" dir="ltr">${esc(CONFIG.phone)}</a></li>` : ''}${emailOk ? `<li><a href="mailto:${esc(CONFIG.email)}">${esc(CONFIG.email)}</a></li>` : ''}<li>${esc(CONFIG.address)}</li></ul></div>
         </div>
         <div class="copyright">© ${new Date().getFullYear()} ${esc(CONFIG.name)}</div>
       </div></footer>
-      <nav class="tabbar" aria-label="تنقل سريع">${links.slice(0, 3).map(([h,t,ic]) => `<a href="${U(h)}"${isActive(h) ? ' class="active" aria-current="page"' : ''}>${icon(ic)}<span>${t}</span></a>`).join('')}
-        <a href="${U('subscription.html')}"${isActive('subscription.html') ? ' class="active"' : ''}>${icon('plus')}<span>سجّل عقارك</span></a></nav>
+      <nav class="tabbar" aria-label="تنقل سريع">${links.map(([h,t,ic]) => `<a href="${U(h)}"${isActive(h) ? ' class="active" aria-current="page"' : ''}>${icon(ic)}<span>${t}</span></a>`).join('')}</nav>
       <button class="to-top icon-btn" aria-label="العودة للأعلى">${icon('up')}</button>`);
 
     const btn = document.querySelector('.menu-btn'), nav = document.getElementById('nav');
@@ -120,23 +120,20 @@
   const fmt = n => Number(n || 0).toLocaleString('en-US');
 
   const H = window.H = {
-    CONFIG, esc, url: U, hideLoader, icon, reveal, fmt,
+    CONFIG, esc, url: U, hideLoader, icon, reveal, fmt, phoneOk,
     qs: n => new URLSearchParams(location.search).get(n),
     price: n => `<span class="price">${fmt(n)}<img src="${U('assets/riyal-symbol.png')}" alt="ريال سعودي" onerror="this.replaceWith(document.createTextNode(' ر.س'))"></span>`,
     waLink: (phone, text) => `https://wa.me/${String(phone).replace(/\D/g,'').replace(/^0/,'966')}?text=${encodeURIComponent(text || '')}`,
-    card: (p, i = 0) => {
-      const img = (p.images || [])[0];
-      const city = p.cities && p.cities.name;
-      const facts = [p.capacity && `${icon('users')}${esc(p.capacity)}`, p.rooms && `${icon('bed')}${esc(p.rooms)}`, p.has_pool && `${icon('pool')}مسبح`].filter(Boolean);
-      return `<a class="card reveal" style="--d:${Math.min(i, 8) * 45}ms" href="${U('property.html')}?id=${encodeURIComponent(p.id)}">
-      <div class="card-img">${img ? `<img loading="lazy" decoding="async" src="${esc(img)}" alt="${esc(p.name)}">` : ''}
-        <div class="card-tags">${p.featured ? `<span class="badge">${icon('star')}مميز</span>` : ''}${p.type ? `<span class="badge badge-glass">${esc(p.type)}</span>` : ''}</div>
-        ${(p.images || []).length > 1 ? `<span class="img-count">${icon('grid')}${p.images.length}</span>` : ''}
-      </div>
-      <div class="card-body"><h3>${esc(p.name)}</h3>
-        <div class="card-district">${icon('pin')}${esc([p.district, city].filter(Boolean).join('، '))}</div>
+    unitCard: (u, i = 0) => {
+      const img = (u.images || [])[0];
+      const facts = [u.capacity && `${icon('users')}${esc(u.capacity)} أشخاص`, u.rooms && `${icon('bed')}${esc(u.rooms)} غرف`].filter(Boolean);
+      const from = u.price_overnight_from || u.price_dayuse_from;
+      return `<a class="card reveal${u.bookable ? '' : ' off'}" style="--d:${Math.min(i, 8) * 45}ms" href="${U('unit.html')}?u=${encodeURIComponent(u.slug)}">
+      <div class="card-img${img ? '' : ' ph'}">${img ? `<img loading="lazy" decoding="async" src="${esc(img)}" alt="${esc(u.name)}">` : icon('home')}
+        <div class="card-tags"><span class="badge badge-glass">${u.kind === 'farm' ? 'مزرعة' : 'شاليه'}</span>${u.bookable ? '' : '<span class="badge badge-off">غير متاح</span>'}</div></div>
+      <div class="card-body"><h3>${esc(u.name)}</h3>
         ${facts.length ? `<div class="facts">${facts.map(f => `<span>${f}</span>`).join('')}</div>` : ''}
-        <div class="card-foot"><small>يبدأ من</small>${H.price(p.price)}</div></div></a>`;
+        <div class="card-foot">${from ? `<small>يبدأ من</small>${H.price(from)}` : '<small>اتصل لمعرفة السعر</small>'}</div></div></a>`;
     },
     skeleton: (n = 8) => Array.from({ length: n }, () => `<div class="card sk-card" aria-hidden="true"><div class="card-img sk"></div><div class="card-body"><div class="sk sk-line w80"></div><div class="sk sk-line w50"></div><div class="sk sk-line w40 tall"></div></div></div>`).join(''),
     empty: (title, text = '', action = '') => `<div class="empty" style="grid-column:1/-1"><div class="empty-ic">${icon('search')}</div><strong>${title}</strong>${text ? `<p>${text}</p>` : ''}${action}</div>`,

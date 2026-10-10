@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>الوحدة | حيالة القصيم</title>
+<meta name="description" content="احجز شاليهات ومزرعة حيالة القصيم، مبيت أو بدون مبيت.">
+<meta name="theme-color" content="#14487F">
+<link rel="icon" href="assets/logo.png">
+<link rel="preconnect" href="https://onktlkgabkjlxnhumoez.supabase.co" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta property="og:type" content="website"><meta property="og:locale" content="ar_SA"><meta property="og:site_name" content="حيالة القصيم">
+<meta property="og:title" content="حيالة القصيم"><meta property="og:description" content=""><meta property="og:image" content="assets/hero.webp">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script defer src="assets/supabase.js"></script>
+<script defer src="assets/app.js"></script>
+</head>
+<body data-hold>
+<main id="main"><section class="section" style="padding-top:20px"><div class="container">
+  <div id="view"><div aria-hidden="true">
+    <div class="sk sk-line w60 tall" style="height:28px;margin:0 0 10px"></div>
+    <div class="sk" style="aspect-ratio:16/8;border-radius:20px"></div>
+    <div class="detail"><div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div><div class="sk" style="height:320px;border-radius:20px"></div></div>
+  </div></div>
+  <section id="more-wrap" class="section" style="padding-bottom:0" hidden>
+    <div class="section-head"><h2>وحدات أخرى</h2></div>
+    <div class="grid" id="more"></div>
+  </section>
+</div></section></main>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const view = document.getElementById('view');
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const day = s => new Date(s + 'T00:00:00');
+  const today = iso(new Date());
+  const latin = s => String(s || '').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
+  const notFound = (t, sub) => { view.innerHTML = H.empty(t, sub, '<a class="btn btn-navy" href="index.html#units">تصفّح الوحدات</a>'); document.title = 'غير موجود | حيالة القصيم'; };
+  const setMeta = (sel, attr, val) => { const m = document.head.querySelector(sel); if (m) m.setAttribute(attr, val); };
+
+  function calendar(off) {
+    const now = new Date(), months = [0, 1, 2].map(i => new Date(now.getFullYear(), now.getMonth() + i, 1));
+    const wd = ['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'];
+    return `<div class="cal">${months.map(m => {
+      const n = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+      const cells = Array.from({ length: m.getDay() }, () => '<span></span>');
+      for (let d = 1; d <= n; d++) {
+        const k = iso(new Date(m.getFullYear(), m.getMonth(), d));
+        cells.push(`<span class="${off.has(k) ? 'off' : k < today ? 'past' : ''}"${off.has(k) ? ' title="محجوز"' : ''}>${d}</span>`);
+      }
+      return `<div class="cal-m"><h3>${m.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { month: 'long', year: 'numeric' })}</h3><div class="cal-g">${wd.map(w => `<span class="w">${w}</span>`).join('')}${cells.join('')}</div></div>`;
+    }).join('')}</div><div class="legend"><span><i></i>محجوز</span></div>`;
+  }
+
+  try {
+    const slug = H.qs('u');
+    if (!slug) { notFound('الوحدة غير موجودة'); return H.hideLoader(); }
+    const { data: p, error } = await sb.from('units').select('*').eq('slug', slug).maybeSingle();
+    if (error) throw error;
+    if (!p) { notFound('الوحدة غير موجودة', 'ربما تم إيقافها مؤقتًا'); return H.hideLoader(); }
+    const { data: blocks } = await sb.from('unit_blocks').select('date_from,date_to').eq('unit_id', p.id).gte('date_to', today);
+    const off = new Set();
+    (blocks || []).forEach(b => { for (let d = day(b.date_from); d <= day(b.date_to); d.setDate(d.getDate() + 1)) off.add(iso(d)); });
+
+    const imgs = (p.images || []).filter(Boolean);
+    const am = Array.isArray(p.amenities) ? p.amenities : [];
+    const kind = p.kind === 'farm' ? 'مزرعة' : 'شاليه';
+    const desc = (p.description || `${p.name} - ${kind} للإيجار في القصيم، مبيت أو بدون مبيت.`).slice(0, 160);
+    document.title = `${p.name} | حيالة القصيم`;
+    setMeta('meta[name="description"]', 'content', desc);
+    setMeta('meta[property="og:title"]', 'content', document.title);
+    setMeta('meta[property="og:description"]', 'content', desc);
+    if (imgs[0]) setMeta('meta[property="og:image"]', 'content', imgs[0]);
+
+    const hl = [['users', 'السعة', p.capacity && `${p.capacity} أشخاص`], ['bed', 'الغرف', p.rooms && `${p.rooms} غرف`], ['home', 'النوع', kind]]
+      .filter(h => h[2]).map(([ic, l, v]) => `<div><span class="hi">${H.icon(ic)}</span><span><small>${l}</small><strong>${H.esc(v)}</strong></span></div>`).join('');
+    const prices = [['مبيت', p.price_overnight_from], ['بدون مبيت', p.price_dayuse_from]].filter(t => Number(t[1]) > 0);
+    const from = prices.length ? Math.min(...prices.map(t => Number(t[1]))) : 0;
+    const waOk = H.phoneOk;
+    const wa = t => H.waLink(H.CONFIG.phone, t);
+    const shown = imgs.slice(0, 5);
+    const imgBtn = (s, i, eager) => `<button type="button" data-i="${i}" aria-label="عرض الصورة ${i + 1} من ${imgs.length} بملء الشاشة"><img ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" src="${H.esc(s)}" alt="${i ? '' : H.esc(p.name)}"></button>`;
+
+    const panel = !p.bookable ? `
+      <div class="notice">هذه الوحدة غير متاحة للحجز حاليًا</div>
+      <p class="price-note">يمكنك الاستفسار عن موعد توفرها أو اختيار وحدة أخرى.</p>
+      <div class="actions-col">${waOk ? `<a class="btn btn-yellow btn-block" href="${wa(`مرحبًا، أرغب بالاستفسار عن توفر "${p.name}"`)}" target="_blank" rel="noopener">${H.icon('wa')}استفسر عبر واتساب</a>` : ''}<a class="btn btn-line btn-block" href="index.html#units">تصفّح الوحدات الأخرى</a></div>` : `
+      <div class="panel-price">${from ? `<small>يبدأ من</small>${H.price(from)}` : '<small>اطلب حجزك وسنؤكد لك السعر</small>'}</div>
+      ${prices.length ? `<div class="tiers">${prices.map(t => `<div><span>${t[0]}</span>${H.price(t[1])}</div>`).join('')}</div>` : ''}
+      <p class="price-note">السعر النهائي يؤكده الفريق حسب اليوم والموسم.</p>
+      <form id="req" novalidate>
+        <div class="field"><label>نوع الإقامة</label><div class="seg"><label><input type="radio" name="st" value="overnight" checked>مبيت</label><label><input type="radio" name="st" value="day_use">بدون مبيت</label></div></div>
+        <div class="row2"><div class="field"><label for="ci">تاريخ الوصول</label><input id="ci" type="date" min="${today}"></div><div class="field" id="co-wrap"><label for="co">تاريخ المغادرة</label><input id="co" type="date" min="${today}"></div></div>
+        <div class="field"><label for="gu">عدد الأشخاص</label><input id="gu" type="number" min="1" max="${p.capacity || 100}" inputmode="numeric"></div>
+        <div class="field"><label for="nm">الاسم</label><input id="nm" autocomplete="name" maxlength="120"></div>
+        <div class="field"><label for="ph">رقم الجوال</label><input id="ph" type="tel" dir="ltr" inputmode="numeric" placeholder="05XXXXXXXX" autocomplete="tel" maxlength="14"></div>
+        <div class="field"><label for="nt">ملاحظات (اختياري)</label><textarea id="nt" rows="2" maxlength="1000"></textarea></div>
+        <p class="err" id="err" role="alert" style="margin-bottom:10px"></p>
+        <button class="btn btn-yellow btn-block btn-lg" id="send" type="submit">أرسل طلب الحجز</button>
+        <p class="trust">${H.icon('check')}لا يتم الحجز نهائيًا إلا بعد تأكيد الفريق</p>
+      </form>`;
+
+    view.innerHTML = `
+      <nav class="crumbs" aria-label="مسار التنقل"><a href="index.html">الرئيسية</a>${H.icon('left')}<a href="index.html#units">الوحدات</a></nav>
+      <div class="ptitle"><div><h1>${H.esc(p.name)}</h1><div class="sub"><span class="badge badge-glass" style="background:#e8f4fb;color:var(--navy)">${kind}</span>${p.bookable ? '' : '<span class="badge badge-off">غير متاح</span>'}</div></div>
+        <div class="ptitle-acts"><button class="icon-btn" type="button" id="share" aria-label="مشاركة">${H.icon('share')}</button></div></div>
+      ${imgs.length ? `<div class="gal">
+        <div class="gal-track" id="track">${imgs.map((s, i) => imgBtn(s, i, i === 0)).join('')}</div>
+        <div class="gal-grid n${Math.min(shown.length, 5)}">${shown.map((s, i) => imgBtn(s, i, i === 0)).join('')}</div>
+        ${imgs.length > 1 ? `<span class="gal-count" id="gcount">1 / ${imgs.length}</span><button class="gal-all" type="button" data-i="0">${H.icon('grid')}كل الصور (${imgs.length})</button>` : ''}
+      </div>` : ''}
+      <div class="detail">
+        <div>
+          ${hl ? `<div class="highlights">${hl}</div>` : ''}
+          ${p.description ? `<div class="block"><h2>عن المكان</h2><p class="desc">${H.esc(p.description)}</p></div>` : ''}
+          ${am.length ? `<div class="block"><h2>المميزات والمرافق</h2><div class="chips">${am.map(a => `<span class="chip">${H.icon('check')}${H.esc(a)}</span>`).join('')}</div></div>` : ''}
+          <div class="block"><h2>التواريخ المتاحة</h2>${calendar(off)}</div>
+        </div>
+        <aside class="panel sticky" id="book" aria-label="طلب الحجز">${panel}</aside>
+      </div>
+      ${p.bookable ? `<div class="bookbar"><div class="bb-price"><small>${from ? 'يبدأ من' : 'احجز الآن'}</small>${from ? H.price(from) : ''}</div><a class="btn btn-yellow" href="#book">اطلب الحجز</a></div>` : ''}`;
+    if (p.bookable) document.body.classList.add('has-bookbar');
+    view.querySelectorAll('.gal [data-i]').forEach(b => b.addEventListener('click', () => openLB(+b.dataset.i)));
+    const track = document.getElementById('track'), gc = document.getElementById('gcount');
+    if (track && gc) track.addEventListener('scroll', () => { gc.textContent = `${Math.round(Math.abs(track.scrollLeft) / track.clientWidth) + 1} / ${imgs.length}`; }, { passive: true });
+    document.getElementById('share').addEventListener('click', async () => {
+      try {
+        if (navigator.share) await navigator.share({ title: p.name, text: `${p.name} - حيالة القصيم`, url: location.href });
+        else { await navigator.clipboard.writeText(location.href); H.toast('تم نسخ الرابط', 'ok'); }
+      } catch (e) { if (e.name !== 'AbortError') H.toast('تعذّرت المشاركة'); }
+    });
+
+    // ===== نموذج طلب الحجز =====
+    const form = document.getElementById('req');
+    if (form) {
+      const $ = id => document.getElementById(id), st = () => form.elements.st.value;
+      const sync = () => {
+        $('co-wrap').hidden = st() === 'day_use';
+        $('ci').min = today; $('co').min = $('ci').value ? iso(new Date(day($('ci').value).getTime() + 864e5)) : today;
+        if ($('co').value && $('co').value <= $('ci').value) $('co').value = '';
+      };
+      form.addEventListener('change', sync); sync();
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const err = m => { $('err').textContent = m; return false; };
+        const type = st(), ci = $('ci').value, co = type === 'day_use' ? ci : $('co').value;
+        const guests = Number($('gu').value), name = $('nm').value.trim(), phone = latin($('ph').value).replace(/[\s-]/g, '');
+        if (!ci) return err('اختر تاريخ الوصول');
+        if (type === 'overnight' && (!co || co <= ci)) return err('اختر تاريخ مغادرة بعد تاريخ الوصول');
+        if (!guests || guests < 1) return err('أدخل عدد الأشخاص');
+        if (p.capacity && guests > p.capacity) return err(`السعة القصوى ${p.capacity} أشخاص`);
+        if (name.length < 2) return err('اكتب اسمك');
+        if (!/^05\d{8}$/.test(phone)) return err('رقم الجوال يجب أن يبدأ بـ 05 ويتكوّن من 10 أرقام');
+        const last = type === 'overnight' ? new Date(day(co).getTime() - 864e5) : day(ci);
+        for (let d = day(ci); d <= last; d.setDate(d.getDate() + 1)) if (off.has(iso(d))) return err('بعض هذه التواريخ محجوزة، اختر تواريخ أخرى');
+        err('');
+        const btn = $('send'); btn.disabled = true; btn.textContent = 'جاري الإرسال...';
+        const { error: er } = await sb.from('booking_requests').insert({ unit_id: p.id, guest_name: name, phone, check_in: ci, check_out: co, stay_type: type, guests, notes: $('nt').value.trim() || null });
+        if (er) { console.error(er); btn.disabled = false; btn.textContent = 'أرسل طلب الحجز'; return err('تعذّر إرسال الطلب، حاول مرة أخرى' + (waOk ? ' أو تواصل معنا عبر واتساب' : '')); }
+        const msg = `طلب حجز جديد\nالوحدة: ${p.name}\nالنوع: ${type === 'overnight' ? 'مبيت' : 'بدون مبيت'}\nالتاريخ: ${ci}${type === 'overnight' ? ' إلى ' + co : ''}\nعدد الأشخاص: ${guests}\nالاسم: ${name}`;
+        form.outerHTML = `<div class="okbox">${H.icon('check')}<h3>وصلنا طلبك</h3><p>سنتواصل معك على ${H.esc(phone)} لتأكيد الحجز والسعر النهائي.</p>${waOk ? `<a class="btn btn-yellow btn-block" href="${wa(msg)}" target="_blank" rel="noopener">${H.icon('wa')}أرسل التفاصيل على واتساب</a>` : ''}</div>`;
+        document.body.classList.remove('has-bookbar'); document.querySelector('.bookbar')?.remove();
+      });
+    }
+
+    // معرض الصور بملء الشاشة
+    let lb, lbTrack, cur = 0, opener;
+    function buildLB() {
+      document.body.insertAdjacentHTML('beforeend', `<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="معرض صور ${H.esc(p.name)}">
+        <div class="lb-top"><span class="lb-count" id="lb-count"></span><button class="icon-btn" type="button" id="lb-close" aria-label="إغلاق المعرض">${H.icon('x')}</button></div>
+        <div class="lb-track" id="lb-track">${imgs.map((s, i) => `<div class="lb-slide"><img loading="lazy" src="${H.esc(s)}" alt="صورة ${i + 1} من ${imgs.length}"></div>`).join('')}</div>
+        ${imgs.length > 1 ? `<button class="icon-btn lb-nav lb-prev" type="button" aria-label="الصورة السابقة">${H.icon('right')}</button><button class="icon-btn lb-nav lb-next" type="button" aria-label="الصورة التالية">${H.icon('left')}</button>
+        <div class="lb-thumbs" id="lb-thumbs">${imgs.map((s, i) => `<button type="button" data-i="${i}" aria-label="صورة ${i + 1}"><img loading="lazy" src="${H.esc(s)}" alt=""></button>`).join('')}</div>` : ''}
+      </div>`);
+      lb = document.getElementById('lb'); lbTrack = document.getElementById('lb-track');
+      document.getElementById('lb-close').onclick = closeLB;
+      lb.querySelector('.lb-prev')?.addEventListener('click', () => go(cur - 1));
+      lb.querySelector('.lb-next')?.addEventListener('click', () => go(cur + 1));
+      lb.querySelectorAll('.lb-thumbs button').forEach(b => b.onclick = () => go(+b.dataset.i));
+      lbTrack.addEventListener('scroll', H.debounce(() => mark(Math.round(Math.abs(lbTrack.scrollLeft) / lbTrack.clientWidth)), 60), { passive: true });
+      lb.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeLB();
+        else if (e.key === 'ArrowLeft') go(cur + 1);
+        else if (e.key === 'ArrowRight') go(cur - 1);
+      });
+    }
+    function mark(i) {
+      cur = i;
+      document.getElementById('lb-count').textContent = `${i + 1} / ${imgs.length}`;
+      lb.querySelectorAll('.lb-thumbs button').forEach((b, j) => { b.classList.toggle('on', j === i); if (j === i) b.scrollIntoView({ block: 'nearest', inline: 'center' }); });
+    }
+    function go(i, instant) {
+      i = (i + imgs.length) % imgs.length;
+      const slide = lbTrack.children[i];
+      lbTrack.scrollTo({ left: slide.offsetLeft - lbTrack.offsetLeft, behavior: instant ? 'instant' : 'smooth' });
+      mark(i);
+    }
+    function openLB(i) {
+      if (!lb) buildLB();
+      opener = document.activeElement;
+      lb.classList.add('open'); document.body.classList.add('lb-open');
+      requestAnimationFrame(() => go(i, true));
+      document.getElementById('lb-close').focus();
+    }
+    function closeLB() { lb.classList.remove('open'); document.body.classList.remove('lb-open'); opener && opener.focus(); }
+
+
+    // وحدات أخرى
+    sb.from('units').select('*').neq('id', p.id).order('sort').then(({ data }) => {
+      if (!data || !data.length) return;
+      document.getElementById('more').innerHTML = data.map(H.unitCard).join('');
+      document.getElementById('more-wrap').hidden = false;
+    });
+  } catch (e) {
+    console.error(e);
+    view.innerHTML = H.empty('تعذّر تحميل الوحدة', 'تحقّق من اتصالك وحاول مرة أخرى', '<button class="btn btn-navy" onclick="location.reload()">إعادة المحاولة</button>');
+  }
+  H.hideLoader();
+});
+</script>
+</body>
+</html>
