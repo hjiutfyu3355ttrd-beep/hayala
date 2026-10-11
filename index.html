@@ -90,18 +90,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('featured').innerHTML = H.skeleton(4);
   $('latest').innerHTML = H.skeleton(8);
 
-  const fillPhotos = (id, rows, n) => { $(id).innerHTML = rows && rows.length ? rows.map(H.photoCard).join('') : H.photoCard(null, 0).repeat(n); };
+  const cssUrl = u => H.esc(String(u).replace(/['"()\\\s]/g, c => '%' + c.charCodeAt(0).toString(16)));
+  const slots = (by, pre, n) => Array.from({ length: n }, (_, i) => H.photoCard(by[pre + '-' + (i + 1)] || null, i)).join('');
   try {
-    const [u, f, l] = await Promise.all([
+    const [u, g, s] = await Promise.all([
       sb.from('units').select('*').order('sort'),
-      sb.from('gallery_photos').select('*, units(slug)').eq('featured', true).order('sort').order('created_at', { ascending: false }).limit(4),
-      sb.from('gallery_photos').select('*, units(slug)').order('created_at', { ascending: false }).limit(8)
+      sb.from('gallery_photos').select('*, units(slug)').not('slot', 'is', null),
+      sb.from('site_settings').select('key,value')
     ]);
-    if (u.error || f.error || l.error) throw (u.error || f.error || l.error);
+    if (u.error || g.error || s.error) throw (u.error || g.error || s.error);
+    const by = {}; g.data.forEach(r => { by[r.slot] = r; });
+    const set = {}; s.data.forEach(r => { set[r.key] = r.value; });
+    if (set.hero_image) document.querySelector('.hero-bg img').src = set.hero_image;
+    if (set.cta_image) $('cta').style.backgroundImage = `url('${cssUrl(set.cta_image)}')`;
     $('h-unit').insertAdjacentHTML('beforeend', u.data.filter(x => x.bookable).map(x => `<option value="${H.esc(x.slug)}">${H.esc(x.name)}</option>`).join(''));
     $('cities').innerHTML = u.data.length ? u.data.map(x => `<a class="city-card reveal" href="unit.html?u=${encodeURIComponent(x.slug)}">${(x.images || [])[0] ? `<img loading="lazy" src="${H.esc(x.images[0])}" alt="">` : ''}<div class="ct"><strong>${H.esc(x.name)}</strong><span>${x.kind === 'farm' ? 'مزرعة' : 'شاليه'}${x.bookable ? '' : ' · غير متاح'}</span></div></a>`).join('') : H.empty('لا توجد وحدات حاليًا');
-    fillPhotos('featured', f.data, 4);
-    fillPhotos('latest', l.data, 8);
+    $('featured').innerHTML = slots(by, 'featured', 4);
+    $('latest').innerHTML = slots(by, 'latest', 8);
     $('s-units').textContent = H.fmt(u.data.filter(x => x.bookable).length);
   } catch (e) {
     console.error(e);

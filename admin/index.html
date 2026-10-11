@@ -18,6 +18,21 @@
   .mt button{flex:1 1 auto;font:inherit;font-size:12px;padding:5px 6px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc;cursor:pointer}
   .mt button.d{color:#b91c1c;border-color:#fca5a5}
   .mh{font-size:13px;color:#64748b;width:100%;margin:0}
+  .dz-note{background:#eaf6fd;border:1px solid #bfe3f6;color:#0f3d6e;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-weight:700;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .dz{border:2px dashed #b7d6ea;border-radius:18px;overflow:hidden;background:#fff}
+  .dz .hero,.dz .card,.dz .city-card,.dz .owner-banner{position:relative}
+  .dz .hero{padding-bottom:50px}
+  .dz .card{cursor:default}
+  .dz .card:hover{transform:none}
+  .slot-btn{position:absolute;z-index:6;inset-inline-start:10px;top:10px;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.96);color:#14487F;border:0;border-radius:999px;padding:7px 14px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.28)}
+  .slot-btn:hover{background:#F9B91E}
+  .slot-btn .i{width:16px;height:16px}
+  .md{position:fixed;inset:0;background:rgba(10,30,55,.55);display:grid;place-items:center;z-index:200;padding:16px}
+  .md[hidden]{display:none}
+  .md-box{background:#fff;border-radius:18px;padding:20px;width:min(480px,100%);max-height:90vh;overflow:auto}
+  .md-box h3{color:#14487F;margin-bottom:6px}
+  .md-pv{margin:10px 0;border-radius:12px;overflow:hidden;background:#eef2f6;min-height:90px;display:grid;place-items:center;color:#64748b}
+  .md-pv img{width:100%;max-height:260px;object-fit:cover;display:block}
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script defer src="../assets/supabase.js"></script>
@@ -35,6 +50,17 @@
     <div class="adm-bar"><div class="adm-tabs" id="tabs"></div><button class="btn btn-line btn-sm" id="out">تسجيل الخروج</button></div>
     <div id="list"></div>
     <div id="fm" hidden></div>
+    <div id="dz" hidden></div>
+  </div>
+  <div class="md" id="md" hidden role="dialog" aria-modal="true" aria-labelledby="md-h">
+    <div class="md-box">
+      <h3 id="md-h"></h3>
+      <div class="md-pv" id="md-pv"></div>
+      <div class="mu"><label class="btn btn-yellow btn-sm" style="cursor:pointer">رفع صورة من جهازك<input type="file" id="md-f" accept="image/*" hidden></label><span class="ms" id="md-s"></span></div>
+      <div id="md-txt" style="margin-top:12px"><div class="field"><label for="md-t1">العنوان (يظهر تحت الصورة)</label><input id="md-t1" maxlength="80"></div><div class="field"><label for="md-t2">وصف قصير</label><input id="md-t2" maxlength="120"></div></div>
+      <p class="err" id="md-e" role="alert"></p>
+      <div class="nav-btns"><button class="btn btn-line" type="button" id="md-x">إلغاء</button><button class="btn btn-line" type="button" id="md-rm"></button><button class="btn btn-yellow" type="button" id="md-ok" style="margin-inline-start:auto">حفظ</button></div>
+    </div>
   </div>
 </div></section></main>
 <script>
@@ -46,10 +72,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const stay = v => v === 'overnight' ? 'مبيت' : 'بدون مبيت';
   const thumb = v => v ? `<img src="${E(v)}" alt="" style="width:64px;height:48px;object-fit:cover;border-radius:8px">` : '';
   const BUCKET = 'property-images';
-  let units = [], cur = 'booking_requests', rows = [];
+  let units = [], cur = 'design', rows = [], dz = { units: [], photos: {}, st: {} }, md = null;
   let media = {}, mOrig = {}, mUp = [], mFolder = '', busy = 0; // حالة الصور داخل النموذج المفتوح (الحالية / الأصلية / المرفوعة في هذه الجلسة)
   // حقول النموذج: [مفتاح, عنوان, نوع(t نص/n رقم/a نص طويل/l أسطر/c اختيار/s قائمة/p صور متعددة/i صورة واحدة), إلزامي, خيارات]
+  const slotLabel = v => !v ? 'المعرض فقط' : (v.startsWith('featured') ? 'من أجمل لقطاتنا' : 'أحدث الصور') + ' #' + v.split('-')[1];
   const ENT = {
+    design: { t: 'تصميم الموقع', design: true },
     booking_requests: { t: 'طلبات الحجز',
       cols: [['unit_name', 'الوحدة'], ['guest_name', 'الاسم'], ['phone', 'الجوال'], ['stay_type', 'النوع', stay], ['check_in', 'من'], ['check_out', 'إلى'], ['guests', 'الأشخاص'], ['notes', 'ملاحظات'], ['status', 'الحالة', v => ST[v] || v], ['created_at', 'التاريخ', dt]],
       acts: r => [['wa', 'واتساب'], r.status === 'new' && ['st:contacted', 'تم التواصل'], r.status !== 'confirmed' && ['st:confirmed', 'تأكيد', 'btn-navy'], (r.status === 'new' || r.status === 'contacted') && ['st:declined', 'رفض'], r.status === 'confirmed' && ['st:cancelled', 'إلغاء التأكيد']].filter(Boolean) },
@@ -57,8 +85,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       cols: [['name', 'الوحدة'], ['capacity', 'السعة'], ['price_overnight_from', 'مبيت من'], ['price_dayuse_from', 'بدون مبيت من'], ['bookable', 'متاحة للحجز', yn], ['active', 'ظاهرة', yn]],
       form: [['name', 'اسم الوحدة', 't', 1], ['capacity', 'السعة (عدد الأشخاص)', 'n'], ['rooms', 'عدد الغرف', 'n'], ['price_overnight_from', 'السعر يبدأ من - مبيت', 'n'], ['price_dayuse_from', 'السعر يبدأ من - بدون مبيت', 'n'], ['bookable', 'متاحة للحجز', 'c'], ['active', 'تظهر في الموقع', 'c'], ['sort', 'الترتيب', 'n'], ['amenities', 'المميزات (كل سطر ميزة)', 'l'], ['images', 'صور الوحدة', 'p'], ['description', 'الوصف', 'a']] },
     gallery_photos: { t: 'معرض الصور', add: true, bulk: true,
-      cols: [['image', 'الصورة', thumb, 1], ['title', 'العنوان'], ['subtitle', 'الوصف'], ['featured', 'مميزة', yn], ['sort', 'الترتيب']],
-      form: [['image', 'الصورة', 'i', 1], ['title', 'العنوان (يظهر تحت الصورة)', 't'], ['subtitle', 'وصف قصير', 't'], ['unit_id', 'الوحدة المرتبطة (اختياري)', 's', 0, 'units'], ['featured', 'تظهر في قسم "من أجمل لقطاتنا"', 'c'], ['sort', 'الترتيب', 'n']] },
+      cols: [['image', 'الصورة', thumb, 1], ['title', 'العنوان'], ['subtitle', 'الوصف'], ['slot', 'مكانها في الصفحة الرئيسية', slotLabel], ['sort', 'الترتيب']],
+      form: [['image', 'الصورة', 'i', 1], ['title', 'العنوان (يظهر تحت الصورة)', 't'], ['subtitle', 'وصف قصير', 't'], ['unit_id', 'الوحدة المرتبطة (اختياري)', 's', 0, 'units'], ['sort', 'الترتيب', 'n']] },
     posts: { t: 'المقالات', add: true,
       cols: [['title', 'العنوان'], ['slug', 'الرابط'], ['published', 'منشور', yn], ['created_at', 'التاريخ', dt]],
       form: [['title', 'العنوان', 't', 1], ['slug', 'الرابط (إنجليزي بدون مسافات)', 't', 1], ['excerpt', 'مقتطف', 't'], ['cover', 'صورة الغلاف', 'i'], ['body', 'النص (سطر فاضي بين الفقرات)', 'a'], ['published', 'منشور', 'c']] },
@@ -137,6 +165,113 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderMedia(k);
   }
 
+  // ===== تصميم الموقع: عرض الصفحة الرئيسية بنفس شكلها، والضغط على أي مكان صورة لتغييره =====
+  async function designLoad() {
+    msg($('dz'), 'جاري التحميل...');
+    const [u, g, st] = await Promise.all([sb.from('units').select('*').order('sort'), sb.from('gallery_photos').select('*').not('slot', 'is', null), sb.from('site_settings').select('key,value')]);
+    if (u.error || g.error || st.error) { console.error(u.error || g.error || st.error); return msg($('dz'), 'تعذّر التحميل'); }
+    dz = { units: u.data || [], photos: {}, st: {} };
+    (g.data || []).forEach(r => { dz.photos[r.slot] = r; });
+    (st.data || []).forEach(r => { dz.st[r.key] = r.value; });
+    designRender();
+  }
+  function designRender() {
+    const cssUrl = u => E(String(u).replace(/['"()\\\s]/g, c => '%' + c.charCodeAt(0).toString(16)));
+    const sbtn = (type, key, label) => `<button type="button" class="slot-btn" data-s="${type}" data-k="${E(key)}">${H.icon('plus')}${label}</button>`;
+    const photo = slot => {
+      const r = dz.photos[slot];
+      const body = r ? ((r.title || r.subtitle) ? `<div class="card-body">${r.title ? `<h3>${E(r.title)}</h3>` : ''}${r.subtitle ? `<div class="card-sub">${E(r.subtitle)}</div>` : ''}</div>` : '') : '<div class="card-body"><h3>صور المنتجع قريبًا</h3></div>';
+      return `<div class="card">${sbtn('photo', slot, r ? 'تغيير الصورة' : 'إضافة صورة')}<div class="card-img${r ? '' : ' ph'}">${r ? `<img src="${E(r.image)}" alt="">` : H.icon('home')}</div>${body}</div>`;
+    };
+    const hero = dz.st.hero_image || '../assets/hero.webp', cta = dz.st.cta_image || '../assets/hero.webp';
+    $('dz').innerHTML = `
+      <div class="dz-note"><span>هذا شكل الصفحة الرئيسية كما يراها الزائر. اضغط على أي زر <b>"إضافة / تغيير الصورة"</b> لوضع صورتك في مكانها.</span><a class="btn btn-line btn-sm" href="../index.html" target="_blank" rel="noopener">فتح الموقع</a></div>
+      <div class="dz">
+        <section class="hero">
+          <div class="hero-bg"><img src="${E(hero)}" alt=""></div>${sbtn('hero', 'hero', 'تغيير صورة الواجهة')}
+          <div class="container">
+            <span class="hero-eyebrow">شاليهات ومزرعة في القصيم</span>
+            <h1>إجازتك المثالية في <em>حيالة القصيم</em> على بُعد ضغطة</h1>
+            <p class="lead">شاليهات ومزرعة للإيجار، مبيت أو بدون مبيت. اختر وحدتك وأرسل طلب الحجز ونؤكده معك.</p>
+            <div class="search-box" inert aria-hidden="true"><label class="sf"><span>الوحدة</span><select><option>اختر الوحدة</option></select></label><label class="sf"><span>نوع الإقامة</span><select><option>مبيت</option></select></label><label class="sf"><span>تاريخ الوصول</span><input type="date"></label><button class="btn btn-yellow btn-lg" type="button">تحقّق من التوفر</button></div>
+          </div>
+        </section>
+        <section class="section"><div class="container">
+          <div class="section-head"><div><h2>وحداتنا</h2><p>صورة كل وحدة تظهر هنا (الصورة الأولى للوحدة)</p></div></div>
+          <div class="cities">${dz.units.map(u => { const im = (u.images || [])[0]; return `<div class="city-card">${im ? `<img src="${E(im)}" alt="">` : ''}<div class="ct"><strong>${E(u.name)}</strong><span>${u.kind === 'farm' ? 'مزرعة' : 'شاليه'}${u.bookable ? '' : ' · غير متاح'}</span></div>${sbtn('unit', u.id, im ? 'تغيير صورة الوحدة' : 'إضافة صورة')}</div>`; }).join('')}</div>
+        </div></section>
+        <section class="section" style="padding-top:0"><div class="container">
+          <div class="section-head"><div><h2>من أجمل لقطاتنا</h2><p>لقطات مختارة من المنتجع</p></div></div>
+          <div class="grid">${[1, 2, 3, 4].map(i => photo('featured-' + i)).join('')}</div>
+        </div></section>
+        <section class="section" style="padding-top:0"><div class="container">
+          <div class="section-head"><div><h2>أحدث الصور</h2><p>آخر ما أُضيف إلى المعرض</p></div></div>
+          <div class="grid">${[1, 2, 3, 4, 5, 6, 7, 8].map(i => photo('latest-' + i)).join('')}</div>
+        </div></section>
+        <section class="section" style="padding-top:0"><div class="container">
+          <div class="owner-banner" style="background-image:url('${cssUrl(cta)}')">${sbtn('cta', 'cta', 'تغيير صورة البانر')}
+            <div class="in"><h2>جاهز لإجازتك؟</h2><p>اختر وحدتك وأرسل طلب الحجز الآن، ونؤكده معك عبر واتساب</p>
+              <ul><li>مبيت أو بدون مبيت حسب رغبتك</li><li>تقويم يوضح الأيام المتاحة</li><li>تأكيد مباشر من الفريق عبر واتساب</li></ul>
+              <a class="btn btn-yellow btn-lg">اطلب حجزك الآن</a></div>
+          </div>
+        </div></section>
+      </div>`;
+  }
+  function mdPreview() {
+    const m = md, def = m.def && !m.url;
+    $('md-pv').innerHTML = (m.url || def) ? `<img src="${E(m.url || '../assets/hero.webp')}" alt="">` : 'لا توجد صورة في هذا المكان';
+    $('md-rm').textContent = m.type === 'photo' ? 'إزالة من هذا المكان' : m.def ? 'العودة للصورة الافتراضية' : 'إزالة صورة الوحدة';
+    $('md-rm').hidden = !m.url;
+  }
+  function openSlot(type, key) {
+    let url = '', t1 = '', t2 = '', head = '';
+    if (type === 'hero' || type === 'cta') { url = dz.st[type === 'hero' ? 'hero_image' : 'cta_image'] || ''; head = type === 'hero' ? 'صورة الواجهة الرئيسية' : 'صورة بانر الحجز'; mFolder = 'site'; }
+    else if (type === 'unit') { const u = dz.units.find(x => x.id === key); url = (u.images || [])[0] || ''; head = 'صورة ' + u.name; mFolder = 'units'; }
+    else { const r = dz.photos[key]; url = r ? r.image : ''; t1 = r && r.title || ''; t2 = r && r.subtitle || ''; head = `${key.startsWith('featured') ? 'من أجمل لقطاتنا' : 'أحدث الصور'} - صورة رقم ${key.split('-')[1]}`; mFolder = 'gallery_photos'; }
+    md = { type, key, url, orig: url, up: [], def: type === 'hero' || type === 'cta' };
+    $('md-h').textContent = head; $('md-t1').value = t1; $('md-t2').value = t2; $('md-txt').hidden = type !== 'photo';
+    $('md-e').textContent = ''; $('md-s').textContent = ''; $('md-ok').disabled = false;
+    mdPreview(); $('md').hidden = false; $('md-f').focus();
+  }
+  function closeMd(discardUploads) {
+    if (discardUploads && md && md.up.length) purge(md.up);
+    md = null; $('md').hidden = true;
+  }
+  async function mdSave() {
+    if (busy) return H.toast('انتظر حتى ينتهي رفع الصورة');
+    const m = md; $('md-ok').disabled = true; let err = null;
+    try {
+      if (m.type === 'hero' || m.type === 'cta') {
+        const k = m.type === 'hero' ? 'hero_image' : 'cta_image';
+        err = m.url ? (await sb.from('site_settings').upsert({ key: k, value: m.url })).error : (await sb.from('site_settings').delete().eq('key', k)).error;
+      } else if (m.type === 'unit') {
+        const u = dz.units.find(x => x.id === m.key), rest = (u.images || []).slice(1);
+        err = (await sb.from('units').update({ images: m.url ? [m.url, ...rest] : rest }).eq('id', u.id)).error;
+      } else {
+        const ex = dz.photos[m.key], title = $('md-t1').value.trim() || null, subtitle = $('md-t2').value.trim() || null;
+        if (m.url) err = (ex ? await sb.from('gallery_photos').update({ image: m.url, title, subtitle }).eq('id', ex.id) : await sb.from('gallery_photos').insert({ slot: m.key, image: m.url, title, subtitle })).error;
+        else if (ex) err = (await sb.from('gallery_photos').update({ slot: null }).eq('id', ex.id)).error;
+      }
+    } catch (e) { err = e; }
+    $('md-ok').disabled = false;
+    if (err) { console.error(err); $('md-e').textContent = 'تعذّر الحفظ: ' + (err.message || ''); return; }
+    const drop = m.up.filter(u => u !== m.url);
+    if (m.orig && m.orig !== m.url && !(m.type === 'photo' && !m.url)) drop.push(m.orig); // إزالة صورة من مكانها لا تحذف الملف (يبقى في المعرض)
+    purge(drop); closeMd(false); H.toast('تم الحفظ', 'ok'); designLoad();
+  }
+  $('dz').addEventListener('click', e => { const b = e.target.closest('.slot-btn'); if (b) openSlot(b.dataset.s, b.dataset.k); });
+  $('md-x').addEventListener('click', () => closeMd(true));
+  $('md').addEventListener('click', e => { if (e.target.id === 'md') closeMd(true); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && md) closeMd(true); });
+  $('md-rm').addEventListener('click', () => { md.url = ''; mdPreview(); });
+  $('md-ok').addEventListener('click', mdSave);
+  $('md-f').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f || !md) return;
+    busy++; $('md-s').textContent = 'جاري الرفع...'; $('md-e').textContent = '';
+    try { const url = await uploadImg(f); md.up.push(url); md.url = url; mdPreview(); }
+    catch (er) { console.error(er); $('md-e').textContent = 'تعذّر رفع الصورة، جرّب صورة أخرى'; }
+    busy--; $('md-s').textContent = ''; e.target.value = '';
+  });
   async function bulkUpload(input) {
     const files = [...input.files]; if (!files.length) return;
     mFolder = 'gallery_photos'; const st = $('bulk-s'); let ok = 0;
@@ -169,9 +304,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   function show(k) {
     discard();
-    cur = k; $('fm').hidden = true; $('list').hidden = false;
+    const d = !!ENT[k].design;
+    cur = k; $('fm').hidden = true; $('dz').hidden = !d; $('list').hidden = d;
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
-    load();
+    if (d) designLoad(); else load();
   }
   async function load() {
     const e = ENT[cur]; msg($('list'), 'جاري التحميل...');

@@ -58,9 +58,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data: p, error } = await sb.from('units').select('*').eq('slug', slug).maybeSingle();
     if (error) throw error;
     if (!p) { notFound('الوحدة غير موجودة', 'ربما تم إيقافها مؤقتًا'); return H.hideLoader(); }
-    const { data: blocks } = await sb.from('unit_blocks').select('date_from,date_to').eq('unit_id', p.id).gte('date_to', today);
+    const external = async () => {
+      if (!window.AVAIL) return [];
+      const ac = new AbortController(), t = setTimeout(() => ac.abort(), 4000);
+      try {
+        const r = await fetch(window.AVAIL.url, { headers: { apikey: window.AVAIL.key, Authorization: 'Bearer ' + window.AVAIL.key }, signal: ac.signal });
+        if (!r.ok) return [];
+        return (((await r.json()).units || {})[p.slug] || []).map(b => ({ date_from: b.from, date_to: b.to }));
+      } catch (e) { return []; } finally { clearTimeout(t); }
+    };
+    const [{ data: blocks }, ext] = await Promise.all([sb.from('unit_blocks').select('date_from,date_to').eq('unit_id', p.id).gte('date_to', today), external()]);
     const off = new Set();
-    (blocks || []).forEach(b => { for (let d = day(b.date_from); d <= day(b.date_to); d.setDate(d.getDate() + 1)) off.add(iso(d)); });
+    [...(blocks || []), ...ext].forEach(b => { for (let d = day(b.date_from); d <= day(b.date_to); d.setDate(d.getDate() + 1)) off.add(iso(d)); });
 
     const imgs = (p.images || []).filter(Boolean);
     const am = Array.isArray(p.amenities) ? p.amenities : [];
