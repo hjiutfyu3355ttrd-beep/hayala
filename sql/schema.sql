@@ -81,30 +81,7 @@ create policy admins_self on admins for select using (user_id = auth.uid());
 grant select on cities_with_count to anon, authenticated;
 
 -- بيانات تجريبية
-insert into cities(name,sort) values ('بريدة',1),('عنيزة',2),('البكيرية',3),('البدائع',4),('عيون الجواء',5) on conflict do nothing;
 
-do $$ begin if not exists (select 1 from properties where owner_name like 'مالك %') then
-insert into properties(owner_name,owner_phone,name,city_id,district,type,price,capacity,rooms,amenities,images,description,featured,status)
-select 'مالك '||v.n, '0500000'||lpad(v.n::text,3,'0'), v.name, c.id, v.district, v.type, v.price, v.cap, v.rooms,
- '["مسبح","واي فاي","مطبخ مجهز","جلسة خارجية","موقف سيارات"]'::jsonb,
- array['https://images.unsplash.com/'||v.img||'?w=800&h=600&fit=crop&q=80','https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop&q=80'],
- 'عقار تجريبي مجهز بالكامل للعائلات والمجموعات، بتصميم مريح وإطلالة هادئة. (بيانات تجريبية)', v.feat, 'approved'
-from (values
- (1,'شاليه بيت القمر','بريدة','البصر','شاليه',300,8,3,true,'photo-1564013799919-ab600027ffc6'),
- (2,'منتجع الودق','بريدة','الشقة','منتجع',500,15,5,true,'photo-1571896349842-33c89424de2d'),
- (3,'شاليه ذا سيزون','بريدة','ضراس','شاليه',650,12,4,true,'photo-1512917774080-9991f1c4c750'),
- (4,'استراحة الفاروق','بريدة','الفاروق','استراحة',400,20,4,true,'photo-1613490493576-7fde63acd811'),
- (5,'منتجع القيروان','بريدة','البصر','منتجع',399,10,3,true,'photo-1582268611958-ebfd161ef9cf'),
- (6,'شاليه فلورا','عنيزة','الرحاب','شاليه',450,10,3,true,'photo-1600585154340-be6161a56a0c'),
- (7,'شاليه الريف المائي','عنيزة','حي الهدية','شاليه',390,8,2,true,'photo-1600596542815-ffad4c1539a9'),
- (8,'شاليه درة الجوهرة','بريدة','قرب حديقة البصر','شاليه',250,6,2,false,'photo-1520250497591-112f2f40a3f4'),
- (9,'شاليهات فهدة','البكيرية','النقيب','شاليه',430,10,3,false,'photo-1564013799919-ab600027ffc6'),
- (10,'استراحة المودة','بريدة','حي الحزم','استراحة',400,25,5,false,'photo-1613490493576-7fde63acd811'),
- (11,'شاليه ثمانية','البدائع','حي الغماس','شاليه',350,8,3,false,'photo-1512917774080-9991f1c4c750'),
- (12,'استراحة الجواء','عيون الجواء','الوسط','استراحة',300,15,3,false,'photo-1600585154340-be6161a56a0c')
-) as v(n,name,city,district,type,price,cap,rooms,feat,img)
-join cities c on c.name=v.city;
-end if; end $$;
 
 do $$ begin if not exists (select 1 from packages) then
 insert into packages(name,price,period,features,sort) values
