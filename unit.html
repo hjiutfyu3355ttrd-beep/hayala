@@ -104,6 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="field"><label for="nm">الاسم</label><input id="nm" autocomplete="name" maxlength="120"></div>
         <div class="field"><label for="ph">رقم الجوال</label><input id="ph" type="tel" dir="ltr" inputmode="numeric" placeholder="05XXXXXXXX" autocomplete="tel" maxlength="14"></div>
         <div class="field"><label for="nt">ملاحظات (اختياري)</label><textarea id="nt" rows="2" maxlength="1000"></textarea></div>
+        <div style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label>Website<input id="hp" tabindex="-1" autocomplete="off"></label></div>
         <p class="err" id="err" role="alert" style="margin-bottom:10px"></p>
         <button class="btn btn-yellow btn-block btn-lg" id="send" type="submit">أرسل طلب الحجز</button>
         <p class="trust">${H.icon('check')}لا يتم الحجز نهائيًا إلا بعد تأكيد الفريق</p>
@@ -168,8 +169,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (let d = day(ci); d <= last; d.setDate(d.getDate() + 1)) if (off.has(iso(d))) return err('بعض هذه التواريخ محجوزة، اختر تواريخ أخرى');
         err('');
         const btn = $('send'); btn.disabled = true; btn.textContent = 'جاري الإرسال...';
-        const { error: er } = await sb.from('booking_requests').insert({ unit_id: p.id, guest_name: name, phone, check_in: ci, check_out: co, stay_type: type, guests, notes: $('nt').value.trim() || null });
-        if (er) { console.error(er); btn.disabled = false; btn.textContent = 'أرسل طلب الحجز'; return err('تعذّر إرسال الطلب، حاول مرة أخرى' + (waOk ? ' أو تواصل معنا عبر واتساب' : '')); }
+        const id = crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+        const notes = $('nt').value.trim() || null;
+        // الإرسال لمكانين معًا: نظام الإدارة (يراه الفريق) + قاعدة الموقع (نسخة أمان). يكفي نجاح أحدهما.
+        const toSite = sb.from('booking_requests').insert({ id, unit_id: p.id, guest_name: name, phone, check_in: ci, check_out: co, stay_type: type, guests, notes }).then(r => { if (r.error) console.error(r.error); return !r.error; }, () => false);
+        const toStaff = (async () => {
+          if (!window.AVAIL || !window.AVAIL.requestUrl) return false;
+          const ac = new AbortController(), t = setTimeout(() => ac.abort(), 6000);
+          try {
+            const r = await fetch(window.AVAIL.requestUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: window.AVAIL.key, Authorization: 'Bearer ' + window.AVAIL.key }, body: JSON.stringify({ id, unit: p.slug, guest_name: name, phone, stay_type: type, check_in: ci, check_out: co, guests, notes, website: $('hp').value }), signal: ac.signal });
+            return r.ok;
+          } catch (e) { return false; } finally { clearTimeout(t); }
+        })();
+        const [okSite, okStaff] = await Promise.all([toSite, toStaff]);
+        if (!okSite && !okStaff) { btn.disabled = false; btn.textContent = 'أرسل طلب الحجز'; return err('تعذّر إرسال الطلب، حاول مرة أخرى' + (waOk ? ' أو تواصل معنا عبر واتساب' : '')); }
         const msg = `طلب حجز جديد\nالوحدة: ${p.name}\nالنوع: ${type === 'overnight' ? 'مبيت' : 'بدون مبيت'}\nالتاريخ: ${ci}${type === 'overnight' ? ' إلى ' + co : ''}\nعدد الأشخاص: ${guests}\nالاسم: ${name}`;
         form.outerHTML = `<div class="okbox">${H.icon('check')}<h3>وصلنا طلبك</h3><p>سنتواصل معك على ${H.esc(phone)} لتأكيد الحجز والسعر النهائي.</p>${waOk ? `<a class="btn btn-yellow btn-block" href="${wa(msg)}" target="_blank" rel="noopener">${H.icon('wa')}أرسل التفاصيل على واتساب</a>` : ''}</div>`;
         document.body.classList.remove('has-bookbar'); document.querySelector('.bookbar')?.remove();

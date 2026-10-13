@@ -8,6 +8,7 @@
   // التواريخ المحجوزة القادمة من نظام الإدارة (تواريخ فقط، بدون بيانات عملاء). المفتاح هنا anon عام لمشروع الإدارة.
   window.AVAIL = {
     url: 'https://zwuvcblrrrriuylajvba.supabase.co/functions/v1/public-availability',
+    requestUrl: 'https://zwuvcblrrrriuylajvba.supabase.co/functions/v1/receive-website-request',
     key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3dXZjYmxycnJyaXV5bGFqdmJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NzE1MDQsImV4cCI6MjEwMTM0NzUwNH0.t0fN9bfGcvIx5HZIouQxdp0N6UpgUylmhFLkMMuwsms'
   };
 })();
